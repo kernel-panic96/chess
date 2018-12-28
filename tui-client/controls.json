@@ -1,0 +1,27 @@
+{
+    "move_left": [
+        "KEY_LEFT",
+        "h"
+    ],
+    "move_right": [
+        "KEY_RIGHT",
+        "l"
+    ],
+    "move_up": [
+        "KEY_UP",
+        "k"
+    ],
+    "move_down": [
+        "KEY_DOWN",
+        "j"
+    ],
+    "select": [
+        "KEY_ENTER"
+    ],
+    "cancel": [
+        "KEY_ESC"
+    ],
+    "quit": [
+        "q"
+    ]
+}
