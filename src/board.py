@@ -1,6 +1,8 @@
 from constants import Rank, File, FigureColor, Diagonal, Direction
 from position import Position
 from chess_pieces import all as pieces
+from utils import method_dispatch
+
 import inspect
 
 
@@ -92,11 +94,22 @@ class Board:
     def is_in_bounds(self, position):
         return not self.is_out_of_bounds(position)
 
+    @method_dispatch
     def are_enemies(self, pos1, pos2):
+        pass
+
+    @are_enemies.register
+    def _(self, pos1: Position, pos2: Position):
         piece1 = self.board[pos1.rank][pos1.file]
         piece2 = self.board[pos2.rank][pos2.file]
 
         return piece1.color != piece2.color
+
+    @are_enemies.register
+    def _(self, color: FigureColor, pos2: Position):
+        piece = self.board[pos2.rank][pos2.file]
+
+        return color != piece.color
 
     def __getitem__(self, key):
         return self.board[key]
@@ -145,3 +158,14 @@ class Board:
                     if board.are_enemies(color, position):
                         yield position
                     break
+                yield position
+
+    def move(self, *, from_pos, to_pos):
+        square = self[from_pos.rank][from_pos.file]
+
+        legal_moves = square.generate_moves(self, from_pos)
+        if to_pos not in legal_moves:
+            raise ValueError('Illegal move')
+
+        self[from_pos.rank][from_pos.file], self[to_pos.rank][to_pos.file] = \
+            None, self[from_pos.rank][from_pos.file]

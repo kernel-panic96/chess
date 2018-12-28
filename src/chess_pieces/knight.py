@@ -1,5 +1,5 @@
 from chess_pieces.base import ChessPieceBase
-from constants import FigureType
+from constants import FigureType, Direction
 from position import Position
 
 
@@ -20,7 +20,7 @@ class Knight(ChessPieceBase):
             Position(rank + one_down, file + two_right),
             Position(rank + two_down, file + one_right),
             Position(rank + two_down, file + one_left),
-            Position(rank + two_down, file + two_left),
+            Position(rank + one_down, file + two_left),
             Position(rank + one_up, file + two_left),
             Position(rank + two_up, file + one_left),
         ]
@@ -29,7 +29,7 @@ class Knight(ChessPieceBase):
         if knight_position is None:
             knight_position = Position(self.rank, self.file)
 
-        possible_positions = self.get_possible_positions(knight_position)
+        possible_positions = self.possible_positions(knight_position)
 
         moves = []
         for position in possible_positions:

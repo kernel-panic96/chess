@@ -147,11 +147,11 @@ class TestPawnMoveGeneration(unittest.TestCase):
 
 class PawnHelpersTests(unittest.TestCase):
     def test_is_at_starting_rank_correctness(self):
-        self.assertTrue(Pawn(FigureColor.WHITE, rank=Rank.TWO, file=File.G).is_at_starting_pos)
-        self.assertTrue(Pawn(FigureColor.BLACK, rank=Rank.SEVEN, file=File.G).is_at_starting_pos)
+        self.assertTrue(Pawn(FigureColor.WHITE, rank=Rank.TWO, file=File.G).is_at_starting_pos())
+        self.assertTrue(Pawn(FigureColor.BLACK, rank=Rank.SEVEN, file=File.G).is_at_starting_pos())
 
-        self.assertFalse(Pawn(FigureColor.BLACK, rank=Rank.TWO, file=File.G).is_at_starting_pos)
-        self.assertFalse(Pawn(FigureColor.WHITE, rank=Rank.SEVEN, file=File.G).is_at_starting_pos)
+        self.assertFalse(Pawn(FigureColor.BLACK, rank=Rank.TWO, file=File.G).is_at_starting_pos())
+        self.assertFalse(Pawn(FigureColor.WHITE, rank=Rank.SEVEN, file=File.G).is_at_starting_pos())
 
     def test_is_white_correctness(self):
         self.assertTrue(Pawn(FigureColor.WHITE, rank=Rank.TWO, file=File.G).is_white)

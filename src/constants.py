@@ -39,8 +39,13 @@ class Rank(IntEnum):
     SEVEN = 3
     EIGHT = 2
 
-    def display(self):
-        return 7 - (self.value - 3)
+    @property
+    def to_coordinate(self):
+        return self.value - 2
+
+    @classmethod
+    def from_str(cls, string):
+        return cls((int(string) + 2))
 
 
 class File(IntEnum):
@@ -53,8 +58,13 @@ class File(IntEnum):
     G = 8
     H = 9
 
-    def display(self):
+    @property
+    def to_coordinate(self):
         return self.value - 2
+
+    @classmethod
+    def from_str(cls, string):
+        return cls(ord(string.lower()) - ord('a') + 2)
 
 
 class Direction(Enum):

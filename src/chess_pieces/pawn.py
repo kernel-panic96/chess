@@ -14,13 +14,15 @@ class Pawn(ChessPieceBase):
     def is_white(self):
         return self.color == FigureColor.WHITE
 
-    @property
-    def is_at_starting_pos(self):
-        starting_rank = Rank.TWO if self.is_white else Rank.SEVEN
-        return self.rank == starting_rank
+    def is_at_starting_pos(self, position = None):
+        if position is None:
+            position = Position(self.rank, self.file)
 
-    def get_possible_positions(self):
-        rank, file = self.rank, self.file
+        starting_rank = Rank.TWO if self.is_white else Rank.SEVEN
+        return position.rank == starting_rank
+
+    def get_possible_positions(self, position):
+        rank, file = position.rank, position.file
         forward = Direction.UP if self.is_white else Direction.DOWN
 
         return {
@@ -34,7 +36,7 @@ class Pawn(ChessPieceBase):
         if pawn_pos is None:
             pawn_pos = Position(self.rank, self.file)
 
-        possible_positions = self.get_possible_positions()
+        possible_positions = self.get_possible_positions(pawn_pos)
         cells = {
             k: board[pos.rank][pos.file]
             for k, pos in possible_positions.items()
@@ -45,7 +47,7 @@ class Pawn(ChessPieceBase):
         if board.is_in_bounds(possible_positions['one_forward']) and board.is_empty(possible_positions['one_forward']):
             positions.append(possible_positions['one_forward'])
 
-        if self.is_at_starting_pos and board.is_empty(possible_positions['two_forward']):
+        if self.is_at_starting_pos(pawn_pos) and board.is_empty(possible_positions['two_forward']):
             positions.append(possible_positions['two_forward'])
 
         if (

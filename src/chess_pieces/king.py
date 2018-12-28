@@ -7,8 +7,8 @@ import itertools
 class King(ChessPieceBase):
     figure_type = FigureType.KING
 
-    def generate_moves(self, board, position: Position = None):
-        if position is None:
+    def generate_moves(self, board, king_pos: Position = None):
+        if king_pos is None:
             king_pos = Position(self.rank, self.file)
 
         return [

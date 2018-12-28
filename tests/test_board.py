@@ -278,3 +278,50 @@ class BoardIterationTests(unittest.TestCase):
                 Position(Rank.TWO, File.B),
                 Position(Rank.ONE, File.A),
             })
+
+
+class UtilMethods(unittest.TestCase):
+    def setUp(self):
+        self.board = Board()
+
+    def test_are_enemies_should_be_affirmative(self):
+        with self.subTest('Call arguments are both Position instances'):
+            piece1_pos = Position(Rank.ONE, File.A)
+            piece2_pos = Position(Rank.ONE, File.B)
+
+            self.board[piece1_pos.rank][piece1_pos.file] = MagicMock(color=FigureColor.BLACK)
+            self.board[piece2_pos.rank][piece2_pos.file] = MagicMock(color=FigureColor.WHITE)
+
+            self.assertTrue(self.board.are_enemies(piece1_pos, piece2_pos))
+            self.assertTrue(self.board.are_enemies(piece2_pos, piece1_pos))
+
+        with self.subTest('First call argument is FigureColor'):
+            piece_pos = Position(Rank.ONE, File.A)
+
+            self.board[piece_pos.rank][piece_pos.file] = MagicMock(color=FigureColor.BLACK)
+
+            self.assertTrue(self.board.are_enemies(FigureColor.WHITE, piece_pos))
+
+    def test_are_enemies_should_be_negative(self):
+        piece1_pos = Position(Rank.ONE, File.A)
+        piece2_pos = Position(Rank.ONE, File.B)
+        piece1_mock = MagicMock()
+        piece2_mock = MagicMock()
+        self.board[piece1_pos.rank][piece1_pos.file] = piece1_mock
+        self.board[piece2_pos.rank][piece2_pos.file] = piece2_mock
+
+        with self.subTest('Call arguments are both Position instances'):
+            with self.subTest('Both are white'):
+                piece1_mock.color = piece2_mock.color = FigureColor.WHITE
+                self.assertFalse(self.board.are_enemies(piece1_pos, piece2_pos))
+            with self.subTest('Both are black'):
+                piece1_mock.color = piece2_mock.color = FigureColor.BLACK
+                self.assertFalse(self.board.are_enemies(piece1_pos, piece2_pos))
+
+        with self.subTest('First call argument is FigureColor'):
+            with self.subTest('Both are white'):
+                piece1_mock.color = FigureColor.WHITE
+                self.assertFalse(self.board.are_enemies(FigureColor.WHITE, piece1_pos))
+            with self.subTest('Both are black'):
+                piece1_mock.color = FigureColor.BLACK
+                self.assertFalse(self.board.are_enemies(FigureColor.BLACK, piece1_pos))
