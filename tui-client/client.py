@@ -11,10 +11,11 @@ import operator
 class TuiBoard:
     _Cursor = namedtuple('CursorPosition', 'y x')
 
-    def __init__(self, screen, top_x=0, top_y=0):
+    def __init__(self, screen, top_x=0, top_y=0, centered=False):
         self.board = Board.standard_configuration()
         # ncurses screen object
         self.screen = screen
+        self.centered = centered
 
         # who's turn it is
         self.player, self.enemy = FigureColor.WHITE, FigureColor.BLACK
@@ -30,6 +31,9 @@ class TuiBoard:
         self.bot_x = self.top_x + 7 * self.step_x
         self.bot_y = self.top_y + 7 * self.step_y
 
+        if centered:
+            self.center()
+
         self.should_redraw = True
         self._selected = None
         self._selected_legal_moves = set()
@@ -37,10 +41,11 @@ class TuiBoard:
 
     def dispatch_move(self, from_pos, to_pos):
         assert self._selected is not None
+
+        to_pos = self._cursor_to_position(to_pos)
+
         assert to_pos in self._selected_legal_moves
 
-        from_pos = self._cursor_to_position(from_pos)
-        to_pos = self._cursor_to_position(to_pos)
 
         self.board.move(from_pos=from_pos, to_pos=to_pos)
 
@@ -56,30 +61,49 @@ class TuiBoard:
             if self.selected:
                 self.remove_highlighting()
 
-            self.highlight_position(*value) and self.highlight_legal_moves()
+            self.highlight_position(value) and self.highlight_legal_moves()
 
-        self._selected = value
+        self._selected = self._cursor_to_position(value)
+
+    def center(self):
+        cursor_position = self._cursor_to_position()
+
+        win_max_y, win_max_x = self.screen.getmaxyx()
+        win_center_x, win_center_y = win_max_x // 2, win_max_y // 2
+
+        self.frame_x, self.frame_y = max(0, win_center_x - 10), max(0, win_center_y - 5)
+
+        self.step_y, self.step_x = 1, 2
+
+        # top left corner of the board
+        self.top_x, self.top_y = self.frame_x + 2, self.frame_y + 1
+
+        self.bot_x = self.top_x + 7 * self.step_x
+        self.bot_y = self.top_y + 7 * self.step_y
+
+        new_cursor_position = self._position_to_coordinates(cursor_position)
+        self.cursor = self._Cursor(*new_cursor_position)
+
 
     @property
     def is_current_select_in_legal_moves(self):
-        return self.cursor in self._selected_legal_moves
+        return self._cursor_to_position(self.cursor) in self._selected_legal_moves
 
-    def draw(self):
+    def draw(self, top_x=0, top_y=0):
         if self.should_redraw:
             self.screen.clear()
+
             self._draw_frame()
             self._draw_board()
 
             if self.selected:
-                self.highlight_position(*self.selected) and self.highlight_legal_moves()
+                self.highlight_position(self.selected) and self.highlight_legal_moves()
 
         self.screen.move(*self.cursor)
         self.screen.refresh()
 
-    def highlight_position(self, y, x, color_pair=None):
+    def highlight_position(self, position, color_pair=None):
         color_pair = color_pair or curses.color_pair(2)
-
-        position = self._cursor_to_position((y, x))
 
         if self.board.is_empty(position):
             return False
@@ -89,9 +113,10 @@ class TuiBoard:
         if piece.color != self.player:
             return False
 
+        y, x = self._position_to_coordinates(position)
         self.screen.chgat(y, x, 1, color_pair)
 
-        self._selected = (y, x)
+        self._selected = position
         return True
 
     def highlight_legal_moves(self, color_pair=None):
@@ -102,7 +127,7 @@ class TuiBoard:
 
         self._selected_legal_moves.clear()
 
-        position = self._cursor_to_position(self.selected)
+        position = self.selected
         moves = self.board[position.rank][position.file].generate_moves(self.board, position)
 
         coordinates = list(map(self._position_to_coordinates, moves))
@@ -116,12 +141,12 @@ class TuiBoard:
             else:
                 self.screen.chgat(y, x, 1, color_pair)
 
-            self._selected_legal_moves.add((y, x))
+            self._selected_legal_moves.add(pos)
 
     def remove_highlighting(self):
-        coordinates = self._selected_legal_moves.union({self._selected})
+        positions = self._selected_legal_moves.union({self._selected})
 
-        positions = map(self._cursor_to_position, coordinates)
+        coordinates = list(map(self._position_to_coordinates, positions))
         y_coordinates = map(operator.itemgetter(0), coordinates)
         x_coordinates = map(operator.itemgetter(1), coordinates)
 
@@ -175,9 +200,9 @@ class TuiBoard:
         # therefore coordinates or self.cursor == self.cursor
         y, x = coordinates or self.cursor
 
-        col, row = (x // self.step_x) - self.top_x, (y // self.step_y) - self.top_y
+        col, row = (x - self.top_x) // self.step_x, (y - self.top_y) // self.step_y
         rank = chr(row + ord('0'))
-        file = chr(col + ord('a') + 1)
+        file = chr(col + ord('a'))
 
         return Position.from_str(file + rank)
 

@@ -1,7 +1,6 @@
 #!/bin/env python3
 
 from curses import wrapper
-import logging
 import os
 import sys
 import curses
@@ -24,8 +23,9 @@ def main(screen, *argv):
     screen.clear()
     setup_color()
 
-    board = TuiBoard(screen)
+    board = TuiBoard(screen, centered=True)
     board.highlight_upon_selection = False
+    curses.halfdelay(1)
 
     user_input = None
     while True:
@@ -56,12 +56,14 @@ def main(screen, *argv):
         elif user_input in controls['quit']:
             return os.EX_OK
 
+        if user_input == curses.KEY_RESIZE:
+            if board.centered:
+                board.center()
+
         board.draw()
         user_input = screen.getch()
-        logging.debug(chr(user_input))
 
 
 
 if __name__ == '__main__':
-    logging.basicConfig()
     sys.exit(wrapper(main, *sys.argv))
