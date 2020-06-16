@@ -1,38 +1,77 @@
 import unittest
+from copy import deepcopy
 
-from board import Board
-from position import Position
-from test_utils import rotate_board, rotate_position
+from chess.constants import Rank, File
+from chess.constants import FigureColor as Color, FigureType as Type
+from chess.position import Position
+from tests.test_utils import rotate_board, rotate_position
+from chess.pieces import (
+    King, Queen, Rook, Bishop, Knight, Pawn
+)
 
 from functional import seq
+
+
+figure_name_to_class = {
+    'king': King,
+    'queen': Queen,
+    'rook': Rook,
+    'bishop': Bishop,
+    'knight': Knight,
+    'pawn': Pawn,
+}
+
+color_to_class = {
+    'white': Color.WHITE,
+    'black': Color.BLACK,
+}
 
 
 class MoveGenerationTestCase(unittest.TestCase):
     recognized_iterables = (type(seq(0)), list, tuple, set, dict)
 
     def runMoveGenerationTest(self, test_case):
-        try:
-            board = test_case['board']
-            test_data = test_case['want']
+        # TODO: the code is a bit dense, maybe refactor, it supports a lot of
+        # use cases, decide on one
 
-            for color in test_data.keys():
-                with self.subTest('/'.join([test_case['name'], color])):
-                    assert_fn = test_data[color].pop('assert', None)
+        board = test_case['board']
+        test_data = test_case['want']
 
-                    for pos, want in test_data[color].items():
-                        piece = board[pos.rank][pos.file]
-                        actual = set(piece.generate_moves(board, pos))
+        for color in test_data.keys():
+            same_for = test_case.get('expect_same_behaviour_for')
+            assert_fn = test_data[color].pop('assert', None)
 
-                        if isinstance(want, self.recognized_iterables):
-                            want = set(map(_transform_relative_offset_to_position(pos), want))
-                        else:
-                            want = _transform_relative_offset_to_position(pos)(want)
+            for pos, want in test_data[color].items():
+                pieces_under_test = [board[pos.rank][pos.file]]
+                if same_for:
+                    pieces = map(str.lower, same_for)
+                    pieces = map(figure_name_to_class.__getitem__, same_for)
+                    figure_color = color_to_class[color.lower()]
+                    pieces_under_test.extend(map(lambda piece: piece(figure_color), pieces))
 
-                        assert_fn = assert_fn or self.assertSetEqual
+                for i, test_piece in enumerate(pieces_under_test):
+                    test_name = [test_case['name'], color, test_piece.type.name.lower()]
+                    with self.subTest('/'.join(test_name)):
+                        try:
+                            test_board = deepcopy(board)
+                            test_board.set_square(test_piece, pos.rank, pos.file)
 
-                        assert_fn(want, actual)
-        except Exception as e:
-            raise e.__class__(f'During test "{test_case["name"]}"') from e
+                            piece = test_board[pos.rank][pos.file]
+                            if not hasattr(piece, 'generate_moves'):
+                                raise ValueError('attribute missing "generate_moves"')
+
+                            actual = set(piece.generate_moves(board, pos))
+                            if isinstance(want, self.recognized_iterables):
+                                want = set(map(_transform_relative_offset_to_position(pos), want))
+                            else:
+                                want = _transform_relative_offset_to_position(pos)(want)
+
+                            assert_fn = assert_fn or self.assertSetEqual
+                            assert_fn(want, actual)
+                        except AssertionError as e:
+                            raise AssertionError(f'testing {board[pos.rank][pos.file]} @ {pos}') from e
+                        except Exception as e:
+                            raise e.__class__(f'During test "{color} {test_case["name"]}"') from e
 
     def all_board_rotations_of(self, test_case):
         '''Returns all rotations of a test case.
@@ -66,8 +105,8 @@ class MoveGenerationTestCase(unittest.TestCase):
         a8, h8, h1 and a1 again. and it's target positions will be rotated accordingly.
         '''
         board = test_case['board']
-        name  = test_case['name']
-        want  = test_case['want']
+        name = test_case['name']
+        want = test_case['want']
 
         test_names = seq.range(90, 360, 90).map(lambda deg: f'rotated{deg}_clockwise')
 
@@ -113,3 +152,38 @@ def _transform_relative_offset_to_position(base):
         return base + pos
 
     return transform_according_to_base
+
+
+def target_board(positions):
+    """
+    >>> positions = target_board([
+    ...     # bcdefgh
+    ...     '........',  # 8
+    ...     '........',  # 7
+    ...     '........',  # 6
+    ...     'X...X...',  # 5
+    ...     '.x.x....',  # 4
+    ...     '..T.....',  # 3
+    ...     '.x.x....',  # 2
+    ...     'X...X...'   # 1
+    ... ]); ('C3' in str(positions.keys()), all(p in str(positions.values()) for p in {"A1", "D2", "B2", "A5", "E1", "B4", "D4", "E5"}))
+    (True, True)
+
+    The example above is so contrived because
+    it needs to work around the way doctest verifies
+    The output will be the following dict - {C3: {A1, A5, D2, E1, B4, B2, E5, D4}}
+
+        T - target - maps to a key of the dict of type chess.position.Position
+        x - expected move == X
+    """
+    wanted_moves = set()
+    target = None
+
+    for (row_idx, row), cur_rank in zip(enumerate(positions), reversed(Rank)):
+        for (col_idx, col), cur_file in zip(enumerate(row), File):
+            if col == 'T':
+                target = Position(cur_rank, cur_file)
+            elif col in ['x', 'X']:
+                wanted_moves.add(Position(cur_rank, cur_file))
+
+    return {target: wanted_moves}

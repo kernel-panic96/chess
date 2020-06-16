@@ -1,38 +1,36 @@
-from unittest.mock import MagicMock
-import unittest
-import contextlib
+import os
 
-from board import Board
-from chess_pieces.queen import Queen
-from constants import FigureColor, FigureType, Rank, File
-from position import Position
-from test_utils import rotate_board, rotate_position
+from chess.board import Board
+from chess.position import Position
+from chess.constants import Rank, File
 
 
-from tests import MoveGenerationTestCase
-
-king_mock = MagicMock()
-king_mock.figure_type = FigureType.KING
+from tests import MoveGenerationTestCase, target_board
 
 P = Position.from_str
 
 
 class CheckAwarenessTests(MoveGenerationTestCase):
-    def test_pieces_should_block(self):
+    def test_pieces_should_body_block_checks(self):
+        """
+        Even though there may be other possible moves if something body blocks a check,
+        it should be able to make only such moves that keep blocking the check
+        """
+
         test_table = [
             {
-                # white
-                'name': 'should_not_be_able_to_move_from_diagonals',
+                'name': 'white_diagonal_pieces_should_not_be_able_to_move_from_diagonals',
                 'board': Board.from_strings([
                     # bcdefgh
                     '.b.....q',  # 8
                     '........',  # 7
                     '...Q.Q..',  # 6
                     '....K...',  # 5
-                    '...B.B..',  # 4
+                    '...Q.Q..',  # 4
                     '........',  # 3
                     '.q.....b',  # 2
                     '........'   # 1
+                    # bcdefgh
                 ]),
                 'want': {
                     'white': {
@@ -41,11 +39,11 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                         P('d6'): {P('c7'), P('b8')},
                         P('d4'): {P('c3'), P('b2')},
                     }
-                }
+                },
+                'expect_same_behaviour_for': ['bishop'],
             },
             {
-                # black
-                'name': 'should_not_be_able_to_move_from_diagonals',
+                'name': 'black_diagonal_pieces_should_not_be_able_to_move_from_diagonals',
                 'board': Board.from_strings([
                     # bcdefgh
                     '.B.....Q',  # 8
@@ -56,6 +54,7 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                     '........',  # 3
                     '.Q.....B',  # 2
                     '........'   # 1
+                    # bcdefgh
                 ]),
                 'want': {
                     'black': {
@@ -64,11 +63,11 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                         P('d6'): {P('c7'), P('b8')},
                         P('d4'): {P('c3'), P('b2')},
                     }
-                }
+                },
+                'expect_same_behaviour_for': ['bishop'],
             },
             {
-                # white
-                'name': 'should_not_be_able_to_move_from_straight',
+                'name': 'white_should_not_be_able_to_move_from_straight',
                 'board': Board.from_strings([
                     # bcdefgh
                     '....q...',  # 8
@@ -87,11 +86,11 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                         P('e6'): {P('e7'), P('e8')},
                         P('e4'): {P('e3'), P('e2')},
                     }
-                }
+                },
+                'expect_same_behaviour_for': ['rook'],
             },
             {
-                # black
-                'name': 'should_not_be_able_to_move_from_straight',
+                'name': 'black_figure_should_not_be_able_to_move_from_straight',
                 'board': Board.from_strings([
                     # bcdefgh
                     '....Q...',  # 8
@@ -104,16 +103,17 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                     '........'   # 1
                 ]),
                 'want': {
-                    'white': {
+                    'black': {
                         P('f5'): {P('g5'), P('h5')},
                         P('d5'): {P('c5'), P('b5')},
                         P('e6'): {P('e7'), P('e8')},
                         P('e4'): {P('e3'), P('e2')},
                     }
-                }
+                },
+                'expect_same_behaviour_from': ['rook'],
             },
             {
-                'name': 'knight_should_block',
+                'name': 'knight_should_be_allowed_only_to_block',
                 'board': Board.from_strings([
                     # bcdefgh
                     'N.....n.',  # 8
@@ -135,7 +135,7 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                 }
             },
             {
-                'name': 'pawn_should_block',
+                'name': 'pawn_should_be_allowed_only_to_block',
                 'board': Board.from_strings([
                     # bcdefgh
                     '........',  # 8
@@ -152,31 +152,156 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                         P('f2'): {P('f4')}
                     },
                 }
-            }
+            },
+            {
+                'name': 'should_only_be_able_to_capture_when_knight_checks',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    '.....k..',  # 8
+                    '....q..N',  # 7
+                    '........',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    'n..Q....',  # 2
+                    '..K.....'   # 1
+                    # bcdefgh
+                ]),
+                'want': {
+                    'white': target_board([
+                        # bcdefgh
+                        '........',  # 8
+                        '........',  # 7
+                        '........',  # 6
+                        '........',  # 5
+                        '........',  # 4
+                        '........',  # 3
+                        'x..T....',  # 2
+                        '..K.....'   # 1
+                        # bcdefgh
+                    ]),
+                    'black': target_board([
+                        # bcdefgh
+                        '.....k..',  # 8
+                        '....T..x',  # 7
+                        '........',  # 6
+                        '........',  # 5
+                        '........',  # 4
+                        '........',  # 3
+                        '........',  # 2
+                        '........'   # 1
+                    ]),
+                }
+            },
         ]
         for test_case in test_table:
             self.runMoveGenerationTest(test_case)
 
-    def test_pieces_should_not_move_if_in_check(self):
-        test_table = [
-            {
-                'name': 'queen_should_not_move',
-                'board': Board.from_strings([
+    def test_double_check_no_other_pieces_other_than_king_should_move(self):
+        for figure, figure_name in (
+            ('q', 'queen'),
+            ('n', 'knight'),
+            ('b', 'bishop'),
+            ('p', 'pawn'),
+            ('r', 'rook'),
+        ):
+            test_case = {
+                'name': f'{figure_name}_is_blocking_double_check_and_should_not_be_able_to_move',
+                'board': Board.from_strings(os.linesep.join([
                     # bcdefgh
                     '....q...',  # 8
                     '.q......',  # 7
-                    '..Q.....',  # 6
+                    '..X.....',  # 6
                     '.K......',  # 5
                     '.......Q',  # 4
                     '....Q...',  # 3
-                    '.....q..',  # 2
+                    '.....x..',  # 2
                     '....k...'   # 1
-                ]),
+                ]).replace('x', figure).replace('X', figure.upper()).split(os.linesep)),
                 'want': {
                     'white': {P('c6'): {}},
                     'black': {P('f2'): {}}
                 }
             }
+            self.runMoveGenerationTest(test_case)
+
+    def test_king_should_not_be_able_to_step_on_attacked_square(self):
+        test_table = [
+            *self.all_board_rotations_of({
+                'name': 'should_not_be_able_to_step_on_attacked_squares',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    '...k....',  # 8
+                    'R.......',  # 7
+                    '........',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    'r.......',  # 2
+                    '...K....'   # 1
+                ]),
+                'want': {
+                    'white': {
+                        Position(Rank.ONE, File.D): {
+                            Position(Rank.TWO, File.C),
+                            Position(Rank.TWO, File.D),
+                            Position(Rank.TWO, File.E),
+                        },
+                        'assert': lambda want, actual: [self.assertNotIn(p, actual) for p in want]
+                    },
+                    'black': {
+                        Position(Rank.EIGHT, File.D): {
+                            Position(Rank.SEVEN, File.C),
+                            Position(Rank.SEVEN, File.D),
+                            Position(Rank.SEVEN, File.E),
+                        },
+                        'assert': lambda want, actual: [self.assertNotIn(p, actual) for p in want]
+                    },
+                }
+            })
+        ]
+
+        for test_case in test_table:
+            self.runMoveGenerationTest(test_case)
+
+    def test_when_king_is_in_check_he_should_be_aware_of_his_own_position(self):
+        test_table = [
+            *self.all_board_rotations_of({
+                'comment': '''
+                    when a possible position is evaluated, the code should not consider
+                    it's old position as a blocker of an attacker
+
+                    In this situation:
+
+                              v
+                    a b c d e f g h
+                    1 . Q . k . . . . 1
+
+                    F1(marked with `v`) should not be a valid move
+                ''',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    'R..k....',  # 8
+                    '........',  # 7
+                    '........',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    '........',  # 2
+                    'r..K....'   # 1
+                ]),
+                'want': {
+                    'white': {
+                        'assert': self.assertNotIn,
+                        Position(Rank.ONE, File.D): Position(Rank.ONE, File.E),
+                    },
+                    'black': {
+                        'assert': self.assertNotIn,
+                        Position(Rank.EIGHT, File.D): Position(Rank.EIGHT, File.E),
+                    },
+                },
+                'name': '',
+            }),
         ]
 
         for test_case in test_table:

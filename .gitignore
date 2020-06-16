@@ -3,3 +3,8 @@ __pycache__/
 .local.vimrc
 .coverage
 venv/
+htmlcov/
+log.info
+.python-version
+.vscode/
+cov.xml

@@ -1,14 +1,12 @@
 import unittest
 from unittest.mock import MagicMock
 
-from board               import Board
-from chess_pieces.bishop import Bishop
-from constants           import Diagonal
-from constants           import FigureColor as Color, FigureType as Type
-from constants           import Rank, File
-from position            import Position
+from chess.board            import Board
+from chess.constants        import FigureColor as Color, FigureType as Type
+from chess.constants        import Rank, File
+from chess.position         import Position
 
-from tests import MoveGenerationTestCase
+from tests import MoveGenerationTestCase, target_board
 
 from functional import seq
 
@@ -66,19 +64,28 @@ class TestBishop(MoveGenerationTestCase):
                     'b...b...'   # 1
                 ]),
                 'want': {
-                    'white': {
-                        Position(Rank.THREE, File.C): set.union(
-                                # all diagonals within 2 squares
-                                seq(-1, 1).cartesian(repeat=2).set(),
-                                seq(-2, 2).cartesian(repeat=2).set()
-                            )
-                    },
-                    'black': {
-                        Position(Rank.SIX, File.E): set.union(
-                                seq(-1, 1).cartesian(repeat=2).set(),
-                                seq(-2, 2).cartesian(repeat=2).set()
-                            )
-                    }
+                    'white': target_board([
+                        # bcdefgh
+                        '........',  # 8
+                        '........',  # 7
+                        '........',  # 6
+                        'X...X...',  # 5
+                        '.x.x....',  # 4
+                        '..T.....',  # 3
+                        '.x.x....',  # 2
+                        'X...X...'   # 1
+                    ]),
+                    'black': target_board([
+                        # bcdefgh
+                        '..X...X.',  # 8
+                        '...x.x..',  # 7
+                        '....T...',  # 6
+                        '...x.x..',  # 5
+                        '..X...X.',  # 4
+                        '........',  # 3
+                        '........',  # 2
+                        '........'   # 1
+                    ])
                 }
             },
             {
@@ -97,14 +104,12 @@ class TestBishop(MoveGenerationTestCase):
                 'want': {
                     'white': {
                         Position(Rank.ONE, File.A): {
-                            Position(Rank.TWO,   File.B),
-                            Position(Rank.THREE, File.C)
+                            (+1, +1), (+2, +2),  # up right
                         }
                     },
                     'black': {
                         Position(Rank.ONE, File.H): {
-                            Position(Rank.TWO,   File.G),
-                            Position(Rank.THREE, File.F),
+                            (+1, -1), (+2, -2),  # up left diagonal
                         }
                     }
                 }

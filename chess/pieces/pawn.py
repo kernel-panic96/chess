@@ -1,14 +1,12 @@
 import functools as fp
+from typing import List
 
-from chess_pieces.base import ChessPiece
-from constants import (
+from chess.pieces.base import ChessPiece
+from chess.constants import (
     FigureType, Direction, FigureColor, Rank
 )
-from position import Position
-
-from typing import List
-from utils import prune_moves_if_king_in_check
-from utils import evaluate
+from chess.position import Position
+from chess.utils import prune_moves_if_king_in_check
 
 from functional import seq
 
@@ -35,11 +33,10 @@ class Pawn(ChessPiece):
             'attack_left': Position(rank + forward, file + Direction.LEFT),
         }
 
+    # NOTE: ideally this should be static or class method but it isnt
+    # because of is_white check
     @prune_moves_if_king_in_check
     def generate_moves(self, board, pawn_pos: Position) -> List[Position]:
-        if pawn_pos is None:
-            pawn_pos = Position(self.rank, self.file)
-
         potential_positions = self.get_possible_positions(pawn_pos)
 
         left_attack  = potential_positions['attack_left']

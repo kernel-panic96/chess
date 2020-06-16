@@ -1,14 +1,13 @@
-import unittest
 from unittest.mock import MagicMock
 
-from board             import Board
-from chess_pieces.rook import Rook
-from constants         import Direction
-from constants         import FigureColor as Color, FigureType as Type
-from constants         import Rank, File
-from position          import Position
+from chess.board import Board
+from chess.pieces.rook import Rook
+from chess.constants import Direction
+from chess.constants import FigureColor as Color, FigureType as Type
+from chess.constants import Rank, File
+from chess.position import Position
 
-from tests import MoveGenerationTestCase
+from tests import MoveGenerationTestCase, target_board
 
 from functional import seq
 
@@ -48,22 +47,32 @@ class RookMoveTests(MoveGenerationTestCase):
                     'R.......'   # 1
                 ]),
                 'want': {
-                    'white': {
-                        Position(Rank.ONE, File.A): set.union(
-                            set(map(lambda dy: (dy, 0), range(8)[1:])),
-                            set(map(lambda dx: (0, dx), range(8)[1:])),
-                        )
-                    },
-                    'black': {
-                        Position(Rank.EIGHT, File.H): set.union(
-                            set(map(lambda dy: (-dy, 0), range(8)[1:])),
-                            set(map(lambda dx: (0, -dx), range(8)[1:])),
-                        )
-                    },
+                    'white': target_board([
+                        # bcdefgh
+                        'x......r',  # 8
+                        'x.......',  # 7
+                        'x.......',  # 6
+                        'x.......',  # 5
+                        'x.......',  # 4
+                        'x.......',  # 3
+                        'x.......',  # 2
+                        'Txxxxxxx'   # 1
+                    ]),
+                    'black': target_board([
+                        # bcdefgh
+                        'xxxxxxxT',  # 8
+                        '.......x',  # 7
+                        '.......x',  # 6
+                        '.......x',  # 5
+                        '.......x',  # 4
+                        '.......x',  # 3
+                        '.......x',  # 2
+                        'R......x'   # 1
+                    ]),
                 }
             }),
             *self.all_board_rotations_of({
-                'name': 'should_not_go_over_pieces',
+                'name': 'should_stop_at_first_friendly',
                 'board': Board.from_strings([
                     # bcdefgh
                     '....r..r',  # 8
@@ -76,100 +85,69 @@ class RookMoveTests(MoveGenerationTestCase):
                     'R..R....'   # 1
                 ]),
                 'want': {
-                    'white': {
-                        Position(Rank.ONE, File.A): set.union(
-                            set(map(lambda dy: (dy, 0), range(1, 3))),
-                            set(map(lambda dx: (0, dx), range(1, 3))),
-                        )
-                    },
-                    'black': {
-                        Position(Rank.EIGHT, File.H): set.union(
-                            set(map(lambda dy: (-dy, 0), range(1, 3))),
-                            set(map(lambda dx: (0, -dx), range(1, 3))),
-                        )
-                    }
+                    'white': target_board([
+                        # bcdefgh
+                        '....r..r',  # 8
+                        '........',  # 7
+                        '........',  # 6
+                        '.......r',  # 5
+                        'R.......',  # 4
+                        'x.......',  # 3
+                        'x.......',  # 2
+                        'TxxR....'   # 1
+                    ]),
+                    'black': target_board([
+                        # bcdefgh
+                        '....rxxT',  # 8
+                        '.......x',  # 7
+                        '.......x',  # 6
+                        '.......r',  # 5
+                        'R.......',  # 4
+                        '........',  # 3
+                        '........',  # 2
+                        'R..R....'   # 1
+                    ]),
                 }
             }),
             {
-                'name': 'should_recognize_enemies',
+                'name': 'should_stop_on_top_of_first_enemy',
                 'board': Board.from_strings([
                     # bcdefgh
-                    '.....R.r',  # 8
+                    '....R..r',  # 8
                     '........',  # 7
-                    '.......R',  # 6
-                    '........',  # 5
-                    '........',  # 4
-                    'r.......',  # 3
+                    '........',  # 6
+                    '.......R',  # 5
+                    'r.......',  # 4
+                    '........',  # 3
                     '........',  # 2
-                    'R.r.....'   # 1
+                    'R..r....'   # 1
                 ]),
                 'want': {
-                    'white': {
-                        Position(Rank.ONE, File.A): set.union(
-                            set(map(lambda dy: (dy, 0), range(1, 3))),
-                            set(map(lambda dx: (0, dx), range(1, 3))),
-                        )
-                    },
-                    'black': {
-                        Position(Rank.EIGHT, File.H): set.union(
-                            set(map(lambda dy: (-dy, 0), range(1, 3))),
-                            set(map(lambda dx: (0, -dx), range(1, 3))),
-                        )
-                    }
+                    'white': target_board([
+                        # bcdefgh
+                        '....xxxT',  # 8
+                        '.......x',  # 7
+                        '.......x',  # 6
+                        '.......x',  # 5
+                        'r.......',  # 4
+                        '........',  # 3
+                        '........',  # 2
+                        'R..r....'   # 1
+                    ]),
+                    'black': target_board([
+                        # bcdefgh
+                        '....R..r',  # 8
+                        '........',  # 7
+                        '........',  # 6
+                        '.......R',  # 5
+                        'x.......',  # 4
+                        'x.......',  # 3
+                        'x.......',  # 2
+                        'Txxx....'   # 1
+                    ]),
                 }
             }
         ]
 
         for test_case in test_table:
             self.runMoveGenerationTest(test_case)
-
-    def setUp(self):
-        self.board = MagicMock()
-        self.mock_get_positions = MagicMock()
-
-    def test_should_stop_at_first_enemy_and_add_it(self):
-        positions = {
-            Direction.UP: [
-                Position(Rank.FOUR, File.C),
-                Position(Rank.FOUR, File.B)
-            ]
-        }
-
-        self.board.is_in_bounds = MagicMock(side_effect=[True, True, True])
-        self.board.is_empty = MagicMock(side_effect=[True, False])
-        self.board.are_enemies = MagicMock(return_value=True)
-
-        self.board.get_positions_in_direction = MagicMock(return_value=positions)
-
-        rook_pos = Position(Rank.FOUR, File.D)
-        rook = Rook(Color.WHITE)
-
-        positions = rook.generate_moves(self.board, rook_pos)
-
-        self.assertSetEqual(set(positions), {
-            Position(Rank.FOUR, File.C),
-            Position(Rank.FOUR, File.B),
-        })
-
-    def test_should_stop_at_first_friendly_and_not_add_it(self):
-        positions = {
-            Direction.UP: [
-                Position(Rank.FOUR, File.C),
-                Position(Rank.FOUR, File.B)
-            ]
-        }
-
-        self.board.is_in_bounds = MagicMock(side_effect=[True, True, True])
-        self.board.is_empty = MagicMock(side_effect=[True, False])
-        self.board.are_enemies = MagicMock(return_value=False)
-
-        self.board.get_positions_in_direction = MagicMock(return_value=positions)
-
-        rook_pos = Position(Rank.FOUR, File.D)
-        rook = Rook(Color.WHITE)
-
-        positions = rook.generate_moves(self.board, rook_pos)
-
-        self.assertSetEqual(set(positions), {
-            Position(Rank.FOUR, File.C),
-        })

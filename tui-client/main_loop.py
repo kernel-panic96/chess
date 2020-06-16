@@ -5,8 +5,8 @@ import os
 import sys
 import curses
 
+import controls
 from client import TuiBoard
-from controls import controls
 
 os.environ.setdefault('ESCDELAY', '10')
 
@@ -20,6 +20,7 @@ def setup_color():
 
 
 def main(screen, *argv):
+    key_bindings = controls.load(argv[-1])  # TODO: argv sanity check
     screen.clear()
     setup_color()
 
@@ -31,19 +32,19 @@ def main(screen, *argv):
 
     user_input = None
     while True:
-        if user_input in controls['move_left']:
+        if user_input in key_bindings['move_left']:
             board.move_left()
 
-        elif user_input in controls['move_right']:
+        elif user_input in key_bindings['move_right']:
             board.move_right()
 
-        elif user_input in controls['move_up']:
+        elif user_input in key_bindings['move_up']:
             board.move_up()
 
-        elif user_input in controls['move_down']:
+        elif user_input in key_bindings['move_down']:
             board.move_down()
 
-        elif user_input in controls['select']:
+        elif user_input in key_bindings['select']:
             if board.is_piece_selected and board.is_current_select_in_legal_moves:
                 board.dispatch_move(board.selected, board.cursor)
                 board.remove_highlighting()
@@ -51,11 +52,11 @@ def main(screen, *argv):
             else:
                 board.selected = board.cursor
 
-        elif user_input in controls['cancel']:
+        elif user_input in key_bindings['cancel']:
             if board.is_piece_selected:
                 board.remove_highlighting()
 
-        elif user_input in controls['quit']:
+        elif user_input in key_bindings['quit']:
             return os.EX_OK
 
         if user_input == curses.KEY_RESIZE:

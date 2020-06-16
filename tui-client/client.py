@@ -1,15 +1,15 @@
-from board import Board
-from constants import FigureColor, FigureType
-from display_symbols import square_to_str
-from position import Position
-
-import chess_pieces as pieces
-
 from collections import namedtuple
 import curses
 import operator
 import functools
 
+import chess.pieces as pieces
+
+from chess.board import Board
+from chess.constants import FigureColor, FigureType
+from chess.position import Position
+
+from display_symbols import square_to_str
 from select_modal import SelectModal
 
 promotion_options = [

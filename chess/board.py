@@ -1,16 +1,16 @@
 import contextlib
 import functools as fp
 import math
-from copy   import deepcopy
-from typing import Generator, Union, Dict, Iterator, Iterable
+from copy import deepcopy
+from typing import Generator, Union, Dict, Iterator, Iterable, overload
 
-from chess_pieces import *
-from constants    import CastlingPerm
-from constants    import Diagonal, Direction
-from constants    import FigureColor as Color, FigureType as Type
-from constants    import Rank, File
-from position     import Position
-from utils        import method_dispatch
+from chess.pieces import *
+from chess.constants import CastlingPerm
+from chess.constants import Diagonal, Direction
+from chess.constants import FigureColor as Color, FigureType as Type
+from chess.constants import Rank, File
+from chess.position import Position
+from chess.utils import method_dispatch
 
 from functional import seq
 
@@ -21,15 +21,6 @@ class OutOfBounds:
 
 
 OutOfBounds = OutOfBounds()
-
-fen_lookup_table = {
-    'N': Knight,
-    'K': King,
-    'B': Bishop,
-    'R': Rook,
-    'P': Pawn,
-    'Q': Queen
-}
 
 
 class _BoardAwareList(list):
@@ -47,7 +38,7 @@ def _maybe_castle(func):
 
         square = board[to_pos.rank][to_pos.file]
 
-        if hasattr(square, 'figure_type') and square.figure_type is Type.KING:
+        if getattr(square, 'figure_type', None) is Type.KING:
             board.castling_perms[square.color] = CastlingPerm.NONE
 
             if from_pos.dist(to_pos) == 2:  # Castling -> Move rook
@@ -134,7 +125,7 @@ class Board:
         BlackPawn = fp.partial(Pawn, Color.BLACK)
         WhitePawn = fp.partial(Pawn, Color.WHITE)
 
-        main_rank = seq([Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook])
+        main_rank = seq(Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook)
 
         padding = 2
         board[Rank.ONE][padding:-padding]   = main_rank.map(lambda kls: kls(Color.WHITE)).list()
@@ -142,8 +133,10 @@ class Board:
         board[Rank.TWO][padding:-padding]   = main_rank.map(lambda _: WhitePawn()).list()
         board[Rank.SEVEN][padding:-padding] = main_rank.map(lambda _: BlackPawn()).list()
 
-        board.kings[Color.BLACK] = Position(Rank.EIGHT, File.E)
-        board.kings[Color.WHITE] = Position(Rank.ONE, File.E)
+        board.kings = {
+            Color.BLACK: Position(Rank.EIGHT, File.E),
+            Color.WHITE: Position(Rank.ONE, File.E),
+        }
 
         board.player, board.enemy = Color.WHITE, Color.BLACK
 
@@ -172,35 +165,41 @@ class Board:
             + [top_padding] + [top_padding]
         )
 
-    # NOTE: For now en_passant, half_move_clock and full_move_clock
-    #  are ignored
     @classmethod
     def from_fen_file(cls, fname: str):
         with open(fname) as file_handle:
             return cls.from_fen(file_handle.readline())
 
+    fen_lookup_table = {
+        'N': Knight,
+        'K': King,
+        'B': Bishop,
+        'R': Rook,
+        'P': Pawn,
+        'Q': Queen
+    }
+
+    # XXX: For now half_move_clock and full_move_clock
+    #  are ignored
     @classmethod
     def from_fen(cls, fen: str):
         fen_board, active_side, castling, en_passant, _, _ = fen.split()
 
         board = cls()
-        board.player = Color.WHITE if active_side == 'w' else Color.BLACK
-        board.enemy = Color.BLACK if active_side == 'w' else Color.WHITE
+        board.player = Color.WHITE if active_side.lower() == 'w' else Color.BLACK
+        board.enemy = Color.BLACK if active_side.lower() == 'w' else Color.WHITE
 
         for rank, row in zip(reversed(Rank), fen_board.split('/')):
             col_i = 0
 
             for char in row:
-                if char.upper() in fen_lookup_table:
-                    cls = fen_lookup_table[char.upper()]
+                if char.upper() in cls.fen_lookup_table:
+                    piece_class = cls.fen_lookup_table[char.upper()]
 
-                    if char.isupper():
-                        color = Color.WHITE
-                    else:
-                        color = Color.BLACK
+                    color = Color.WHITE if char.isupper() else Color.BLACK
 
                     p_file = File.from_str(chr(col_i + ord('a')))
-                    piece = cls(color, rank=rank, file=p_file)
+                    piece = piece_class(color)
                     board[rank][p_file] = piece
 
                     if char.upper() == 'K':
@@ -220,13 +219,15 @@ class Board:
         board.castling_perms[Color.BLACK] |= int('k' in castling) << int(math.log2(CastlingPerm.KING_SIDE))
         board.castling_perms[Color.BLACK] |= int('q' in castling) << int(math.log2(CastlingPerm.QUEEN_SIDE))
 
-        board.en_passant_pos = None
+        if en_passant != '-':
+            board.en_passant_pos = Position.from_str(en_passant)
 
         return board
 
     @classmethod
     def from_strings(cls, inp: Iterable[str]):
         '''Creates a board from list of string.
+        Used in testing
 
         >>> board = Board.from_strings([
         ...     "........",
@@ -238,10 +239,8 @@ class Board:
         ...     ".P......",
         ...     "........"
         ... ])
-        >>> board[Rank.TWO][File.B].__class__.__name__
-        'Pawn'
-        >>> board[Rank.TWO][File.B].color.name
-        'WHITE'
+        >>> board[Rank.TWO][File.B]
+        White Pawn
 
         '''
 
@@ -267,7 +266,6 @@ class Board:
         for r, res in zip(list(Rank), reversed(projection)):
             for f, obj in zip(File, res):
                 board.set_square(obj, rank=r, file=f)
-            # board[r][2:-2] = res
         return board
 
     def next_turn(self):
@@ -275,6 +273,11 @@ class Board:
 
     @property
     def projection(self):
+        """
+        Returns 8x8 representation, the internal representation
+        need not be 8x8. So use this or index the board with constants.Rank & File
+
+        """
         return [row[2:-2] for row in self.board[2:-2]]
 
     def is_empty(self, position: Position):
@@ -289,7 +292,7 @@ class Board:
         return not self.is_out_of_bounds(pos)
 
     @method_dispatch
-    def are_enemies(self, pos1, pos2):
+    def are_enemies(self, pos1, pos2):  # pragma: no cover
         pass
 
     @are_enemies.register
@@ -385,7 +388,8 @@ class Board:
                             if position in pawn_positions:
                                 yield position
 
-                    break
+                    if direction != 'Knight':
+                        break
 
     def _castle_move_rook(self, color: Color, side: CastlingPerm) -> None:
         rank = Rank.ONE if color is Color.WHITE else Rank.EIGHT
@@ -403,21 +407,16 @@ class Board:
     @_maybe_castle
     @_set_or_clear_en_passant
     def move(self, *, from_pos: Position, to_pos: Position) -> None:
+        """
+        Move whatever is in `from_pos` to `to_pos`.
+        move() is permissive it won't deny a move or check for it's validity.
+        It also doesn't care about who's turn is it.
+        """
         square = self[from_pos.rank][from_pos.file]
 
         assert square is not None and square is not OutOfBounds
-        # assert to_pos in square.generate_moves(self, from_pos)
-
-        # if square.figure_type is Type.KING:
-        #     self.castling_perms[square.color] = CastlingPerm.NONE
-
-        #     if from_pos.dist(to_pos) == 2:  # Castling -> Move rook
-        #         direction = from_pos.relative_direction_towards_position(to_pos)
-
-        #         if direction is Direction.LEFT:
-        #             self._castle_move_rook(square.color, CastlingPerm.QUEEN_SIDE)
-        #         else:
-        #             self._castle_move_rook(CastlingPerm.KING_SIDE)
+        # assert to_pos in square.generate_moves(self, from_pos)  # potentially
+        # expensive, hence the commenting out
 
         if square.figure_type is Type.ROOK:
             if self.castling_perms[square.color]:
@@ -430,16 +429,8 @@ class Board:
 
                 self.castling_perms[square.color] &= remove_mask
 
-        self[from_pos.rank][from_pos.file], self[to_pos.rank][to_pos.file] = \
-            None, self[from_pos.rank][from_pos.file]
-
-    def make_pseudo_move(self, from_pos: Position, to_pos: Position):
-        new_board = Board()
-        new_board.board = deepcopy(self)
-
-        new_board.move(from_pos, to_pos)
-
-        return new_board
+        self.set_square(self[from_pos.rank][from_pos.file], to_pos.rank, to_pos.file)
+        self.set_square(None, from_pos.rank, from_pos.file)
 
     def shallow_copy(self, board) -> None:
         self.__dict__.update(board.__dict__)

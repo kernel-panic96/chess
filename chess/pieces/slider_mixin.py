@@ -1,11 +1,12 @@
-from position import Position
-from constants import Diagonal, Direction
 import functools
+
+from chess.position import Position
+from chess.constants import Diagonal, Direction
 
 
 class PieceSliderMixin:
     '''Sliders are bishops, rooks and queens.
-    Provides two methods, _generate_diagonal_moves and _generate_straight_moves.
+    Provides two methods, generate_diagonal_moves and generate_straight_moves.
     Both methods are bounds aware and will stop at the first non-empty square,
     and will return it, based on whether or not it is an enemy piece or not, respectively
     '''
@@ -27,16 +28,3 @@ class PieceSliderMixin:
 
     generate_diagonal_moves = functools.partialmethod(_generate_moves_in_direction, directions=list(Diagonal))
     generate_straight_moves = functools.partialmethod(_generate_moves_in_direction, directions=list(Direction))
-
-    def is_legal_move_straight(self, to_pos, from_pos: Position = None):
-        from_pos = from_pos or Position(self.rank, self.file)
-
-        return from_pos.rank == to_pos.rank or from_pos.file == to_pos.file
-
-    def is_legal_move_diagonal(self, to_pos, from_pos: Position = None):
-        from_pos = from_pos or Position(self.rank, self.file)
-
-        return (
-            from_pos.rank + from_pos.file == to_pos.rank + to_pos.file or
-            from_pos.rank - from_pos.file == to_pos.rank - to_pos.file
-        )

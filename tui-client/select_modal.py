@@ -2,7 +2,7 @@ import operator
 import curses
 import math
 
-from controls import controls
+import controls as key_bindings
 
 
 class SelectModal:
@@ -27,11 +27,11 @@ class SelectModal:
 
         while True:
 
-            if user_input in controls['move_up']:
+            if user_input in key_bindings.get('move_up'):
                 self.selected = (self.selected - 1) % len(self.options)
-            elif user_input in controls['move_down']:
+            elif user_input in key_bindings.get('move_down'):
                 self.selected = (self.selected + 1) % len(self.options)
-            elif user_input in controls['select']:
+            elif user_input in key_bindings.get('select'):
                 break
             elif user_input == curses.KEY_RESIZE:
                 self.center(screen)

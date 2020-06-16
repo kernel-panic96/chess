@@ -1,6 +1,7 @@
 import unittest
-from constants import Rank, File
-from position import Position
+
+from chess.constants import Rank, File
+from chess.position import Position
 
 
 class PositionTests(unittest.TestCase):

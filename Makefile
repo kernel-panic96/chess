@@ -1,14 +1,8 @@
 run:
-	cd tui-client && PYTHONPATH=../src python3 main_loop.py
+	PYTHONPATH=./ python3 tui-client/main_loop.py tui-client/controls.json
 
 test:
-	./tests/run --source-root ./src/ --verbose 2 
-
-pytest:
-	PYTHONPATH=src/:tests/ pytest --capture=no --pdbcls=IPython.terminal.debugger:TerminalPdb -v 
-
-cov: 
-	PYTHONPATH=src/:tests/ pytest --capture=no --pdbcls=IPython.terminal.debugger:TerminalPdb --cov=src/
+	pytest --cov chess/ --cov-report=term-missing --cov-report=xml:cov.xml --cov-report=html --cov-branch --doctest-modules --verbosity=2
 
 clean:
 	find . -type f -name '*.pyc' -delete

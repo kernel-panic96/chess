@@ -1,5 +1,6 @@
-from position import Position
 from copy import deepcopy
+
+from chess.position import Position
 
 
 def rotate_board(board, times=1):

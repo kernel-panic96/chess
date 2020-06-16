@@ -1,8 +1,8 @@
-from chess_pieces.base         import ChessPiece
-from chess_pieces.slider_mixin import PieceSliderMixin
-from constants                 import FigureType
-from position                  import Position
-from utils                     import prune_moves_if_king_in_check
+from chess.pieces.base         import ChessPiece
+from chess.pieces.slider_mixin import PieceSliderMixin
+from chess.constants           import FigureType
+from chess.position            import Position
+from chess.utils               import prune_moves_if_king_in_check
 
 
 class Queen(PieceSliderMixin, ChessPiece):

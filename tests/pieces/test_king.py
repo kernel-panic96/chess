@@ -1,15 +1,10 @@
-import unittest
-import functools as fp
-from unittest.mock import MagicMock
+from tests import MoveGenerationTestCase, target_board
 
-from test_utils import rotate_board, rotate_position
-from tests import MoveGenerationTestCase
-
-from chess_pieces.king import King
-from board import Board
-from position import Position
-from constants import FigureType as Type, FigureColor as Color
-from constants import Rank, File
+from chess.pieces.king import King
+from chess.board import Board
+from chess.position import Position
+from chess.constants import FigureType as Type, FigureColor as Color
+from chess.constants import Rank, File
 
 from functional import seq
 
@@ -49,12 +44,28 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     '........'   # 1
                 ]),
                 'want': {
-                    'white': {
-                        Position(Rank.SEVEN, File.B): seq(-1, 0, 1).cartesian(repeat=2).filter_not(lambda a: a == (0, 0))
-                    },
-                    'black': {
-                        Position(Rank.TWO, File.B): seq(-1, 0, 1).cartesian(repeat=2).filter_not(lambda a: a == (0, 0))
-                    },
+                    'white': target_board([
+                        # bcdefgh
+                        '........',  # 8
+                        '.k......',  # 7
+                        '........',  # 6
+                        '........',  # 5
+                        '........',  # 4
+                        'xxx.....',  # 3
+                        'xTx.....',  # 2
+                        'xxx.....'   # 1
+                    ]),
+                    'black': target_board([
+                        # bcdefgh
+                        'xxx.....',  # 8
+                        'xTx.....',  # 7
+                        'xxx.....',  # 6
+                        '........',  # 5
+                        '........',  # 4
+                        '........',  # 3
+                        '.K......',  # 2
+                        '........'   # 1
+                    ]),
                 }
             },
             *self.all_board_rotations_of({
@@ -71,18 +82,28 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     'K.......'   # 1
                 ]),
                 'want': {
-                    'white': {
-                        Position(Rank.ONE, File.A):
-                            seq(0, 1)\
-                            .cartesian(repeat=2)\
-                            .filter_not(lambda p: p == (0, 0))
-                    },
-                    'black': {
-                        Position(Rank.EIGHT, File.H):
-                            seq(0, -1)\
-                            .cartesian(repeat=2)\
-                            .filter_not(lambda p: p == (0, 0))
-                    },
+                    'white': target_board([
+                        # bcdefgh
+                        '......xT',  # 8
+                        '......xx',  # 7
+                        '........',  # 6
+                        '........',  # 5
+                        '........',  # 4
+                        '........',  # 3
+                        '........',  # 2
+                        'K.......'   # 1
+                    ]),
+                    'black': target_board([
+                        # bcdefgh
+                        '.......k',  # 8
+                        '........',  # 7
+                        '........',  # 6
+                        '........',  # 5
+                        '........',  # 4
+                        '........',  # 3
+                        'xx......',  # 2
+                        'Tx......'   # 1
+                    ]),
                 }
             }),
             {
@@ -161,73 +182,6 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     },
                 }
             },
-            *self.all_board_rotations_of({
-                'name': 'when_in_check_should_be_aware_of_its_own_position',
-                'comment': '''
-                    when a possible position is evaluated, the code should not consider
-                    it's old position as a blocker of an attacker
-
-                    In this situation:
-
-                    a b c d e f g h
-                    1 . Q . k . . . . 1
-
-                    F1 should not be a valid move
-                ''',
-                'board': Board.from_strings([
-                    # bcdefgh
-                    'R..k....',  # 8
-                    '........',  # 7
-                    '........',  # 6
-                    '........',  # 5
-                    '........',  # 4
-                    '........',  # 3
-                    '........',  # 2
-                    'r..K....'   # 1
-                ]),
-                'want': {
-                    'white': {
-                        Position(Rank.ONE, File.D): Position(Rank.ONE, File.E),
-                        'assert': self.assertNotIn,
-                    },
-                    'black': {
-                        Position(Rank.EIGHT, File.D): Position(Rank.EIGHT, File.E),
-                        'assert': self.assertNotIn
-                    },
-                }
-            }),
-            {
-                'name': 'should_not_be_able_to_step_on_attacked_squares',
-                'board': Board.from_strings([
-                    # bcdefgh
-                    '...k....',  # 8
-                    'R.......',  # 7
-                    '........',  # 6
-                    '........',  # 5
-                    '........',  # 4
-                    '........',  # 3
-                    'r.......',  # 2
-                    '...K....'   # 1
-                ]),
-                'want': {
-                    'white': {
-                        Position(Rank.ONE, File.D): {
-                            Position(Rank.TWO, File.C),
-                            Position(Rank.TWO, File.D),
-                            Position(Rank.TWO, File.E),
-                        },
-                        'assert': lambda want, actual: [self.assertNotIn(p, actual) for p in want]
-                    },
-                    'black': {
-                        Position(Rank.EIGHT, File.D): {
-                            Position(Rank.SEVEN, File.C),
-                            Position(Rank.SEVEN, File.D),
-                            Position(Rank.SEVEN, File.E),
-                        },
-                        'assert': lambda want, actual: [self.assertNotIn(p, actual) for p in want]
-                    },
-                }
-            }
         ]
 
         for test_case in test_table:

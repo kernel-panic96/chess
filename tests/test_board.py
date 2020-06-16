@@ -6,14 +6,14 @@ from unittest.mock import (
     PropertyMock
 )
 
-from board import Board, OutOfBounds
-from constants import (
+from chess.board import Board, OutOfBounds
+from chess.constants import (
     Rank, File,
     Direction, Diagonal,
     FigureColor, FigureType
 )
-from position import Position
-from chess_pieces import *
+from chess.position import Position
+from chess.pieces import *
 
 
 class PropertyTests(unittest.TestCase):
@@ -38,25 +38,15 @@ class PropertyTests(unittest.TestCase):
         self.assertEqual(board, expected)
 
     def test_empty_ctor_calls_board_empty(self):
-        with patch('board.Board.empty') as mock_empty:
+        with patch('chess.board.Board.empty') as mock_empty:
             board = Board()
             mock_empty.assert_called_once()
-
-
-def is_in_bounds_fake(*, rank_interval, file_interval):
-    rank_lower, rank_upper = rank_interval
-    file_lower, file_upper = file_interval
-
-    def fake(position):
-        return rank_lower <= position.rank <= rank_upper and file_lower <= position.file <= file_upper
-
-    return fake
 
 
 class StandardConfigurationCorrectnessTests(unittest.TestCase):
     def init_mocks(self):
         class_dependencies = ['Pawn', 'Rook', 'Bishop', 'King', 'Queen', 'Knight']
-        patchers = [patch(f'board.{cls}') for cls in class_dependencies]
+        patchers = [patch(f'chess.board.{cls}') for cls in class_dependencies]
 
         for cls, patcher in zip(class_dependencies, patchers):
             setattr(self, f'{cls}Mock', patcher.start())

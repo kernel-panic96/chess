@@ -230,11 +230,13 @@ class Direction(Enum):
     Direction is a helper class for moving positions (ranks & files)
 
     Example usage:
-        >>> from constants import Rank, File
+        >>> from chess.constants import Rank, File
 
         Moving one position up:
         >>> Rank(Rank.ONE + Direction.UP).name
         'TWO'
+
+        NOTE: there is no boundary checking. This is left to the user
 
         Moving one position down:
         >>> Rank(Rank.TWO + Direction.DOWN).name
@@ -316,34 +318,47 @@ class Direction(Enum):
         return self.value
 
     def __add__(self, other):
+        """
+        >>> Direction.UP + 1
+        0
+
+        >>> Direction.DOWN + 1
+        2
+
+        """
+
         return self._int_value + other
 
     def __radd__(self, other):
-        return other + self._int_value
+        """
+        >>> 1 + Direction.UP
+        0
 
-    def __sub__(self, other):
-        return self._int_value - other
+        >>> 1 + Direction.DOWN
+        2
+
+        """
+
+        return other + self._int_value
 
     def __rsub__(self, other):
         return other - self._int_value
 
     def __mul__(self, other):
+        """
+        >>> Direction.UP * 3
+        -3
+
+        """
         return self._int_value * other
 
     def __rmul__(self, other):
+        """
+        >>> Direction.DOWN * 3
+        3
+
+        """
         return other * self._int_value
-
-    def __floordiv__(self, other):
-        return self._int_value * other
-
-    def __rfloordiv__(self, other):
-        return other // self._int_value
-
-    def __truediv__(self, other):
-        return self._int_value / other
-
-    def __rtruediv__(self, other):
-        return other / self._int_value
 
 
 class Diagonal(Enum):

@@ -1,13 +1,11 @@
-import unittest
-
-from board              import Board
-from chess_pieces.queen import Queen
-from constants          import FigureColor as Color, FigureType as Type
-from constants          import Rank, File
-from position           import Position
+from chess.board import Board
+from chess.constants import FigureColor as Color, FigureType as Type
+from chess.constants import Rank, File
+from chess.position import Position
 
 
 from tests import MoveGenerationTestCase
+from tests import target_board
 
 
 class TestMoveGeneration(MoveGenerationTestCase):
@@ -46,22 +44,127 @@ class TestMoveGeneration(MoveGenerationTestCase):
                     'Q..Q....'   # 1
                 ]),
                 'want': {
-                    'white': {Position(Rank.ONE, File.A): {
-                        (0, +1),
-                        (0, +2),
-                        (+1, +1),
-                        (+2, +2),
-                        (+1, 0),
-                        (+2, 0),
-                    }},
-                    'black': {Position(Rank.EIGHT, File.H): {
-                        (0, -1),
-                        (0, -2),
-                        (-1, -1),
-                        (-2, -2),
-                        (-1, 0),
-                        (-2, 0),
-                    }},
+                    'white': target_board([
+                        # bcdefgh
+                        '........',  # 8
+                        '........',  # 7
+                        '........',  # 6
+                        '........',  # 5
+                        'Q..Q....',  # 4
+                        'x.x.....',  # 3
+                        'xx......',  # 2
+                        'TxxQ....'   # 1
+                        # bcdefgh
+                    ]),
+                    'black': target_board([
+                        # bcdefgh
+                        '....qxxT',  # 8
+                        '......xx',  # 7
+                        '.....x.x',  # 6
+                        '....q..q',  # 5
+                        '........',  # 4
+                        '........',  # 3
+                        '........',  # 2
+                        '........'   # 1
+                        # bcdefgh
+                    ]),
                 }
             }),
+            *self.all_board_rotations_of({
+                'name': 'should_go_no_further_than_the_enemy',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    '....Q..q',  # 8
+                    '........',  # 7
+                    '........',  # 6
+                    '....Q..Q',  # 5
+                    'q..q....',  # 4
+                    '........',  # 3
+                    '........',  # 2
+                    'Q..q....'   # 1
+                ]),
+                'want': {
+                    'white': target_board([
+                        # bcdefgh
+                        '........',  # 8
+                        '........',  # 7
+                        '........',  # 6
+                        '........',  # 5
+                        'x..x....',  # 4
+                        'x.x.....',  # 3
+                        'xx......',  # 2
+                        'Txxx....'   # 1
+                        # bcdefgh
+                    ]),
+                    'black': target_board([
+                        # bcdefgh
+                        '....xxxT',  # 8
+                        '......xx',  # 7
+                        '.....x.x',  # 6
+                        '....x..x',  # 5
+                        '........',  # 4
+                        '........',  # 3
+                        '........',  # 2
+                        '........'   # 1
+                        # bcdefgh
+                    ]),
+                }
+            }),
+            {
+                'name': 'clear_board_all_positions',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    '.......K',  # 8
+                    '........',  # 7
+                    '........',  # 6
+                    '...Q....',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    '........',  # 2
+                    '........'   # 1
+                ]),
+                'want': {
+                    'white': target_board([
+                        # bcdefgh
+                        'x..x..x.',  # 8
+                        '.x.x.x..',  # 7
+                        '..xxx...',  # 6
+                        'xxxTxxxx',  # 5
+                        '..xxx...',  # 4
+                        '.x.x.x..',  # 3
+                        'x..x..x.',  # 2
+                        '...x...x'   # 1
+                    ]),
+                }
+            },
+            {
+                'name': 'clear_board_all_positions',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    '........',  # 8
+                    '........',  # 7
+                    '........',  # 6
+                    '...q....',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    '........',  # 2
+                    '........'   # 1
+                ]),
+                'want': {
+                    'black': target_board([
+                        # bcdefgh
+                        'x..x..x.',  # 8
+                        '.x.x.x..',  # 7
+                        '..xxx...',  # 6
+                        'xxxTxxxx',  # 5
+                        '..xxx...',  # 4
+                        '.x.x.x..',  # 3
+                        'x..x..x.',  # 2
+                        '...x...x'   # 1
+                    ]),
+                }
+            },
         ]
+
+        for test_case in test_table:
+            self.runMoveGenerationTest(test_case)

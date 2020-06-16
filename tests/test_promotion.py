@@ -1,9 +1,9 @@
 import unittest
 
-from board      import Board
-from position   import Position
-from constants  import Rank, File
-from constants  import FigureColor as Color
+from chess.board      import Board
+from chess.position   import Position
+from chess.constants  import Rank, File
+from chess.constants  import FigureColor as Color
 
 
 class PromotionTests(unittest.TestCase):

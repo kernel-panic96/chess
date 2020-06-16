@@ -1,4 +1,4 @@
-from constants import FigureType, FigureColor
+from chess.constants import FigureType, FigureColor
 
 sym_table = {
     FigureType.PAWN: {

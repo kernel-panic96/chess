@@ -19,6 +19,17 @@ def to_key_codes(key):
 def flatten(seq):
     return [elem for subseq in seq for elem in subseq]
 
-controls = json.load(open('controls.json'))
-controls = {k: [to_key_codes(key) for key in v] for k, v in controls.items()}
-controls = {k: flatten(v) for k, v in controls.items()}
+def load(cfg):
+    controls = json.load(open(cfg))
+    controls = {k: [to_key_codes(key) for key in v] for k, v in controls.items()}
+    controls = {k: flatten(v) for k, v in controls.items()}
+
+    global config
+    config = controls
+
+    return config
+
+def get(key):
+    return config[key]
+
+config = None

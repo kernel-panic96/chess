@@ -1,11 +1,11 @@
-from chess_pieces.base import ChessPiece
-from chess_pieces.slider_mixin import PieceSliderMixin
-from constants import FigureType, Diagonal
-from position import Position
-from utils import prune_moves_if_king_in_check
-
 import operator
 from functools import reduce
+
+from chess.pieces.base import ChessPiece
+from chess.pieces.slider_mixin import PieceSliderMixin
+from chess.constants import FigureType, Diagonal
+from chess.position import Position
+from chess.utils import prune_moves_if_king_in_check
 
 
 class Bishop(PieceSliderMixin, ChessPiece):

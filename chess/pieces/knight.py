@@ -1,8 +1,7 @@
-from chess_pieces.base import ChessPiece
-from constants import FigureType, Direction
-from position import Position
-
-from utils import prune_moves_if_king_in_check
+from chess.pieces.base import ChessPiece
+from chess.constants import FigureType, Direction
+from chess.position import Position
+from chess.utils import prune_moves_if_king_in_check
 
 
 class Knight(ChessPiece):
