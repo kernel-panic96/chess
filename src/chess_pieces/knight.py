@@ -1,33 +1,36 @@
-from chess_pieces.base import ChessPieceBase
+from chess_pieces.base import ChessPiece
 from constants import FigureType, Direction
 from position import Position
 
+from utils import prune_moves_if_king_in_check
 
-class Knight(ChessPieceBase):
+
+class Knight(ChessPiece):
     figure_type = FigureType.KNIGHT
 
-    def possible_positions(self, position):
-        one_up, two_up = Direction.UP, Direction.UP * 2
-        one_right, two_right = Direction.RIGHT, Direction.RIGHT * 2
-        one_left, two_left = Direction.LEFT, Direction.LEFT * 2
-        one_down, two_down = Direction.DOWN, Direction.DOWN * 2
+    _one_up, _two_up = Direction.UP, Direction.UP * 2
+    _one_right, _two_right = Direction.RIGHT, Direction.RIGHT * 2
+    _one_left, _two_left = Direction.LEFT, Direction.LEFT * 2
+    _one_down, _two_down = Direction.DOWN, Direction.DOWN * 2
 
+    @classmethod
+    def possible_positions(cls, position):
         rank, file = position.rank, position.file
 
         return [
-            Position(rank + two_up, file + one_right),
-            Position(rank + one_up, file + two_right),
-            Position(rank + one_down, file + two_right),
-            Position(rank + two_down, file + one_right),
-            Position(rank + two_down, file + one_left),
-            Position(rank + one_down, file + two_left),
-            Position(rank + one_up, file + two_left),
-            Position(rank + two_up, file + one_left),
+            Position(rank + cls._two_up, file + cls._one_right),
+            Position(rank + cls._one_up, file + cls._two_right),
+            Position(rank + cls._one_down, file + cls._two_right),
+            Position(rank + cls._two_down, file + cls._one_right),
+            Position(rank + cls._two_down, file + cls._one_left),
+            Position(rank + cls._one_down, file + cls._two_left),
+            Position(rank + cls._one_up, file + cls._two_left),
+            Position(rank + cls._two_up, file + cls._one_left),
         ]
 
+    @prune_moves_if_king_in_check
     def generate_moves(self, board, knight_position: Position = None):
-        if knight_position is None:
-            knight_position = Position(self.rank, self.file)
+        knight_position = knight_position or Position(self.rank, self.file)
 
         possible_positions = self.possible_positions(knight_position)
 

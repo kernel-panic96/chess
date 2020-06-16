@@ -1,24 +1,38 @@
 from board import Board
-from constants import FigureColor
+from constants import FigureColor, FigureType
 from display_symbols import square_to_str
 from position import Position
+
+import chess_pieces as pieces
 
 from collections import namedtuple
 import curses
 import operator
+import functools
 
+from select_modal import SelectModal
 
-class TuiBoard:
+promotion_options = [
+    ('Queen', pieces.Queen),
+    ('Knight', pieces.Knight),
+    ('Rook', pieces.Rook),
+    ('Bishop', pieces.Bishop),
+]
+
+class TuiBoard(Board):
     _Cursor = namedtuple('CursorPosition', 'y x')
 
-    def __init__(self, screen, top_x=0, top_y=0, centered=False):
-        self.board = Board.standard_configuration()
+    #TODO: handle self.promotion_cb properly
+    def __init__(self, screen, top_x=0, top_y=0, centered=False, *, fen: str=None):
+        if fen is not None:
+            self.shallow_copy(Board.from_fen(fen))
+        else:
+            self.shallow_copy(Board.standard_configuration())
+
         # ncurses screen object
         self.screen = screen
         self.centered = centered
-
-        # who's turn it is
-        self.player, self.enemy = FigureColor.WHITE, FigureColor.BLACK
+        self.promotion_cb = functools.partial(SelectModal(promotion_options), self.screen)
 
         # frame_x is the begginning of the files header and footer
         self.frame_x, self.frame_y = top_x, top_y
@@ -47,7 +61,7 @@ class TuiBoard:
         assert to_pos in self._selected_legal_moves
 
 
-        self.board.move(from_pos=from_pos, to_pos=to_pos)
+        self.move(from_pos=from_pos, to_pos=to_pos)
 
         self.should_redraw = True
 
@@ -105,10 +119,10 @@ class TuiBoard:
     def highlight_position(self, position, color_pair=None):
         color_pair = color_pair or curses.color_pair(2)
 
-        if self.board.is_empty(position):
+        if self.is_empty(position):
             return False
 
-        piece = self.board[position.rank][position.file]
+        piece = self[position.rank][position.file]
 
         if piece.color != self.player:
             return False
@@ -128,7 +142,7 @@ class TuiBoard:
         self._selected_legal_moves.clear()
 
         position = self.selected
-        moves = self.board[position.rank][position.file].generate_moves(self.board, position)
+        moves = self[position.rank][position.file].generate_moves(self, position)
 
         coordinates = list(map(self._position_to_coordinates, moves))
 
@@ -136,7 +150,7 @@ class TuiBoard:
         x_coordinates = map(operator.itemgetter(1), coordinates)
 
         for y, x, pos in zip(y_coordinates, x_coordinates, moves):
-            if self.board.is_empty(pos):
+            if self.is_empty(pos):
                 self.screen.addstr(y, x, 'x', color_pair)
             else:
                 self.screen.chgat(y, x, 1, color_pair)
@@ -151,7 +165,7 @@ class TuiBoard:
         x_coordinates = map(operator.itemgetter(1), coordinates)
 
         for y, x, pos in zip(y_coordinates, x_coordinates, positions):
-            square = self.board[pos.rank][pos.file]
+            square = self[pos.rank][pos.file]
             self.screen.addstr(y, x, square_to_str(square), curses.color_pair(0))
 
         self._selected = None
@@ -160,9 +174,6 @@ class TuiBoard:
     @property
     def is_piece_selected(self):
         return self._selected is not None
-
-    def next_turn(self):
-        self.player, self.enemy = self.enemy, self.player
 
     def move_down(self):
         y, x = self.cursor
@@ -186,12 +197,12 @@ class TuiBoard:
 
         for i in range(8):
             self.screen.addstr(self.frame_y + i + 1, self.frame_x, str(8 - i))
-            self.screen.addstr(self.frame_y + i + 1, self.frame_x + 4 + len(files), str(8 - i))
+            self.screen.addstr(self.frame_y + i + 1, self.frame_x + 3 + len(files), str(8 - i))
 
         self.screen.addstr(self.frame_y + 9, self.frame_x + 2, files)
 
     def _draw_board(self):
-        for i, row in enumerate(self.board.projection):
+        for i, row in enumerate(self.projection):
             for j, elem in enumerate(row):
                 self.screen.addstr(self.top_y + i, self.top_x + j * 2, square_to_str(elem))
 
@@ -201,12 +212,12 @@ class TuiBoard:
         y, x = coordinates or self.cursor
 
         col, row = (x - self.top_x) // self.step_x, (y - self.top_y) // self.step_y
-        rank = chr(row + ord('0'))
+        rank = chr(7 - row + ord('0') + 1)
         file = chr(col + ord('a'))
 
         return Position.from_str(file + rank)
 
     def _position_to_coordinates(self, position):
-        y, x = position.to_coordinates
+        y, x = position.coordinates
 
         return y * self.step_y + self.top_y, x * self.step_x + self.top_x

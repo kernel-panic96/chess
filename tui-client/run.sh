@@ -1,3 +1,3 @@
 #!/bin/env bash
 
-PYTHONPATH=../src/ python3 main_loop.py
+PYTHONPATH=../src/:../tests/ python3 main_loop.py

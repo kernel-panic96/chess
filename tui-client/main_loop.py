@@ -23,7 +23,9 @@ def main(screen, *argv):
     screen.clear()
     setup_color()
 
-    board = TuiBoard(screen, centered=True)
+    # with open('board-configurations/fen_scratch_pad.txt') as f:
+    board = TuiBoard(screen, centered=True)  #, fen=f.readline())
+
     board.highlight_upon_selection = False
     curses.halfdelay(1)
 
@@ -63,7 +65,7 @@ def main(screen, *argv):
         board.draw()
         user_input = screen.getch()
 
-
-
 if __name__ == '__main__':
+    import logging
+    logging.basicConfig(level=logging.INFO, filename='log.info')
     sys.exit(wrapper(main, *sys.argv))

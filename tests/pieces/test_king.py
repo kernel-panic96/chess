@@ -1,134 +1,234 @@
 import unittest
+import functools as fp
+from unittest.mock import MagicMock
+
+from test_utils import rotate_board, rotate_position
+from tests import MoveGenerationTestCase
+
 from chess_pieces.king import King
 from board import Board
 from position import Position
-from constants import FigureColor, Rank, File
+from constants import FigureType as Type, FigureColor as Color
+from constants import Rank, File
+
+from functional import seq
 
 
-class MoveGenerationTests(unittest.TestCase):
-    def setUp(self):
-        self.board = Board()
+class MoveGenerationTests(MoveGenerationTestCase):
+    def test_board_constructor_works_for_kings(self):
+        board = Board.from_strings([
+            # bcdefgh
+            '........',  # 8
+            '.k......',  # 7
+            '........',  # 6
+            '........',  # 5
+            '........',  # 4
+            '........',  # 3
+            '.K......',  # 2
+            '........'   # 1
+        ])
+        self.assertEqual(board[Rank.TWO][File.B].type, Type.KING)
+        self.assertEqual(board[Rank.TWO][File.B].color, Color.WHITE)
 
-    def test_should_return_all_surrounding_squares_empty_board(self):
-        king = King(FigureColor.WHITE, rank=Rank.FOUR, file=File.D)
-        self.board[king.rank][king.file] = king
+        self.assertEqual(board[Rank.SEVEN][File.B].type, Type.KING)
+        self.assertEqual(board[Rank.SEVEN][File.B].color, Color.BLACK)
 
-        self.assertSetEqual(
-            set(king.generate_moves(self.board)),
+    def test_move_generation(self):
+        test_table = [
             {
-                Position(Rank.THREE, File.C),
-                Position(Rank.THREE, File.D),
-                Position(Rank.THREE, File.E),
-                Position(Rank.FOUR, File.E),
-                Position(Rank.FIVE, File.E),
-                Position(Rank.FIVE, File.D),
-                Position(Rank.FIVE, File.C),
-                Position(Rank.FOUR, File.C),
+                'name': 'clear_board_should_have_all_surrounding_positions',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    '........',  # 8
+                    '.k......',  # 7
+                    '........',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    '.K......',  # 2
+                    '........'   # 1
+                ]),
+                'want': {
+                    'white': {
+                        Position(Rank.SEVEN, File.B): seq(-1, 0, 1).cartesian(repeat=2).filter_not(lambda a: a == (0, 0))
+                    },
+                    'black': {
+                        Position(Rank.TWO, File.B): seq(-1, 0, 1).cartesian(repeat=2).filter_not(lambda a: a == (0, 0))
+                    },
+                }
+            },
+            *self.all_board_rotations_of({
+                'name': 'should_be_bounds_aware',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    '.......k',  # 8
+                    '........',  # 7
+                    '........',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    '........',  # 2
+                    'K.......'   # 1
+                ]),
+                'want': {
+                    'white': {
+                        Position(Rank.ONE, File.A):
+                            seq(0, 1)\
+                            .cartesian(repeat=2)\
+                            .filter_not(lambda p: p == (0, 0))
+                    },
+                    'black': {
+                        Position(Rank.EIGHT, File.H):
+                            seq(0, -1)\
+                            .cartesian(repeat=2)\
+                            .filter_not(lambda p: p == (0, 0))
+                    },
+                }
+            }),
+            {
+                'name': 'should_be_able_to_capture',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    'K.......',  # 8
+                    'pp......',  # 7
+                    '........',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    'PP......',  # 2
+                    'k.......'   # 1
+                ]),
+                'want': {
+                    'white': {
+                        Position(Rank.EIGHT, File.A): {
+                            Position(Rank.SEVEN, File.A),
+                            Position(Rank.SEVEN, File.B),
+                            Position(Rank.EIGHT, File.B),
+                        }
+                    },
+                    'black': {
+                        Position(Rank.ONE, File.A): {
+                            Position(Rank.ONE, File.B),
+                            Position(Rank.TWO, File.B),
+                            Position(Rank.TWO, File.A),
+                        }
+                    },
+                }
+            },
+            {
+                'name': 'should_not_include_friendlies',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    'kk......',  # 8
+                    'kk......',  # 7
+                    '........',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    'KK......',  # 2
+                    'KK......'   # 1
+                ]),
+                'want': {
+                    'white': {Position(Rank.ONE, File.A):   {}},
+                    'black': {Position(Rank.EIGHT, File.A): {}},
+                }
+            },
+            {
+                'name': 'should_not_be_able_to_capture_if_piece_is_protected',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    'Kb......',  # 8
+                    'pp......',  # 7
+                    '........',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    'PP......',  # 2
+                    'kB......'   # 1
+                ]),
+                'want': {
+                    'white': {
+                        Position(Rank.EIGHT, File.A): {
+                            Position(Rank.SEVEN, File.B),
+                            Position(Rank.EIGHT, File.B),
+                        }
+                    },
+                    'black': {
+                        Position(Rank.ONE, File.A): {
+                            Position(Rank.ONE, File.B),
+                            Position(Rank.TWO, File.B),
+                        }
+                    },
+                }
+            },
+            *self.all_board_rotations_of({
+                'name': 'when_in_check_should_be_aware_of_its_own_position',
+                'comment': '''
+                    when a possible position is evaluated, the code should not consider
+                    it's old position as a blocker of an attacker
+
+                    In this situation:
+
+                    a b c d e f g h
+                    1 . Q . k . . . . 1
+
+                    F1 should not be a valid move
+                ''',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    'R..k....',  # 8
+                    '........',  # 7
+                    '........',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    '........',  # 2
+                    'r..K....'   # 1
+                ]),
+                'want': {
+                    'white': {
+                        Position(Rank.ONE, File.D): Position(Rank.ONE, File.E),
+                        'assert': self.assertNotIn,
+                    },
+                    'black': {
+                        Position(Rank.EIGHT, File.D): Position(Rank.EIGHT, File.E),
+                        'assert': self.assertNotIn
+                    },
+                }
+            }),
+            {
+                'name': 'should_not_be_able_to_step_on_attacked_squares',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    '...k....',  # 8
+                    'R.......',  # 7
+                    '........',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '........',  # 3
+                    'r.......',  # 2
+                    '...K....'   # 1
+                ]),
+                'want': {
+                    'white': {
+                        Position(Rank.ONE, File.D): {
+                            Position(Rank.TWO, File.C),
+                            Position(Rank.TWO, File.D),
+                            Position(Rank.TWO, File.E),
+                        },
+                        'assert': lambda want, actual: [self.assertNotIn(p, actual) for p in want]
+                    },
+                    'black': {
+                        Position(Rank.EIGHT, File.D): {
+                            Position(Rank.SEVEN, File.C),
+                            Position(Rank.SEVEN, File.D),
+                            Position(Rank.SEVEN, File.E),
+                        },
+                        'assert': lambda want, actual: [self.assertNotIn(p, actual) for p in want]
+                    },
+                }
             }
-        )
+        ]
 
-    def test_should_be_bounds_aware(self):
-        with self.subTest('upper-right corner'):
-            king = King(FigureColor.WHITE, rank=Rank.EIGHT, file=File.H)
-            self.board[king.rank][king.file] = king
-
-            self.assertSetEqual(
-                set(king.generate_moves(self.board)),
-                {
-                    Position(Rank.EIGHT, File.G),
-                    Position(Rank.SEVEN, File.G),
-                    Position(Rank.SEVEN, File.H)
-                }
-            )
-            self.board[king.rank][king.file] = None
-
-        with self.subTest('upper-left corner'):
-            king = King(FigureColor.WHITE, rank=Rank.EIGHT, file=File.A)
-            self.board[king.rank][king.file] = king
-
-            self.assertSetEqual(
-                set(king.generate_moves(self.board)),
-                {
-                    Position(Rank.EIGHT, File.B),
-                    Position(Rank.SEVEN, File.B),
-                    Position(Rank.SEVEN, File.A)
-                }
-            )
-
-            self.board[king.rank][king.file] = None
-
-        with self.subTest('lower-left corner'):
-            king = King(FigureColor.WHITE, rank=Rank.ONE, file=File.A)
-            self.board[king.rank][king.file] = king
-
-            self.assertSetEqual(
-                set(king.generate_moves(self.board)),
-                {
-                    Position(Rank.ONE, File.B),
-                    Position(Rank.TWO, File.B),
-                    Position(Rank.TWO, File.A)
-                }
-            )
-            self.board[king.rank][king.file] = None
-
-        with self.subTest('lower-right corner'):
-            king = King(FigureColor.WHITE, rank=Rank.ONE, file=File.H)
-            self.board[king.rank][king.file] = king
-
-            self.assertSetEqual(
-                set(king.generate_moves(self.board)),
-                {
-                    Position(Rank.ONE, File.G),
-                    Position(Rank.TWO, File.G),
-                    Position(Rank.TWO, File.H)
-                }
-            )
-            self.board[king.rank][king.file] = None
-
-    def test_should_reject_friendly_piece_positions(self):
-        king = King(FigureColor.WHITE, rank=Rank.FIVE, file=File.D)
-        friendly = King(FigureColor.WHITE, rank=Rank.FOUR, file=File.D)
-
-        self.board[king.rank][king.file] = king
-        self.board[Rank.FIVE][File.E] = \
-            self.board[Rank.FIVE][File.C] = \
-            self.board[Rank.FOUR][File.D] = \
-            self.board[Rank.FOUR][File.E] = \
-            self.board[Rank.FOUR][File.C] = \
-            friendly
-
-        self.assertSetEqual(set(king.generate_moves(self.board)), {
-            Position(Rank.SIX, File.C),
-            Position(Rank.SIX, File.D),
-            Position(Rank.SIX, File.E),
-        })
-
-    def test_should_recognize_enemy_positions(self):
-        king = King(FigureColor.WHITE, rank=Rank.FOUR, file=File.D)
-        enemy = King(FigureColor.BLACK, rank=Rank.FIVE, file=File.D)
-
-        self.board[king.rank][king.file] = king
-
-        self.board[Rank.THREE][File.C] = \
-            self.board[Rank.THREE][File.D] = \
-            self.board[Rank.THREE][File.E] = \
-            self.board[Rank.FOUR][File.C] = \
-            self.board[Rank.FOUR][File.E] = \
-            self.board[Rank.FIVE][File.C] = \
-            self.board[Rank.FIVE][File.D] = \
-            self.board[Rank.FIVE][File.E] = \
-            enemy
-
-        self.board[Rank.FIVE][File.D] = enemy
-
-        positions = set(king.generate_moves(self.board))
-        self.assertSetEqual(positions, {
-            Position(Rank.THREE, File.C),
-            Position(Rank.THREE, File.D),
-            Position(Rank.THREE, File.E),
-            Position(Rank.FOUR, File.C),
-            Position(Rank.FOUR, File.E),
-            Position(Rank.FIVE, File.C),
-            Position(Rank.FIVE, File.D),
-            Position(Rank.FIVE, File.E),
-        })
+        for test_case in test_table:
+            self.runMoveGenerationTest(test_case)

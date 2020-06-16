@@ -1,0 +1,50 @@
+from chess_pieces.base import ChessPiece
+from position import Position
+from constants import FigureType
+
+import itertools
+
+
+class King(ChessPiece):
+    figure_type = FigureType.KING
+
+    def generate_moves(self, board, king_pos: Position = None):
+        if king_pos is None:
+            king_pos = Position(self.rank, self.file)
+
+        positions = []
+        for pos in self.possible_positions(king_pos):
+            if (
+                board.is_in_bounds(pos) and
+                (board.is_empty(pos) or board.are_enemies(king_pos, pos))
+                and not self.is_in_check(board, pos)
+            ):
+                positions.append(pos)
+
+        return positions
+
+        return [
+            pos for pos in self.possible_positions(king_pos)
+            if (
+                board.is_in_bounds(pos) and
+                (board.is_empty(pos) or board.are_enemies(king_pos, pos))
+                and not self.is_in_check(board, pos)
+            )
+        ]
+
+    def possible_positions(self, pos):
+        rank, file = pos.rank, pos.file
+
+        surrounding_positions = [
+            Position(rank + delta_rank, file + delta_file)
+            for delta_rank, delta_file in itertools.product([1, 0, -1], repeat=2)
+            if (delta_rank, delta_file) != (0, 0)
+        ]
+
+        return surrounding_positions
+
+    def is_in_check(self, board, king_pos=None):
+        if king_pos is None:
+            king_pos = Position(self.rank, self.file)
+
+        return any(board.get_attackers(king_pos, self.color))
