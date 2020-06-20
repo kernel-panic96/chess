@@ -18,8 +18,7 @@ class CheckAwarenessTests(MoveGenerationTestCase):
         """
 
         test_table = [
-            {
-                'name': 'white_diagonal_pieces_should_not_be_able_to_move_from_diagonals',
+            { 'name': 'white_diagonal_pieces_should_not_be_able_to_move_from_diagonals',
                 'board': Board.from_strings([
                     # bcdefgh
                     '.b.....q',  # 8
@@ -42,8 +41,7 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                 },
                 'expect_same_behaviour_for': ['bishop'],
             },
-            {
-                'name': 'black_diagonal_pieces_should_not_be_able_to_move_from_diagonals',
+            { 'name': 'black_diagonal_pieces_should_not_be_able_to_move_from_diagonals',
                 'board': Board.from_strings([
                     # bcdefgh
                     '.B.....Q',  # 8
@@ -66,8 +64,7 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                 },
                 'expect_same_behaviour_for': ['bishop'],
             },
-            {
-                'name': 'white_should_not_be_able_to_move_from_straight',
+            { 'name': 'white_should_not_be_able_to_move_from_straight',
                 'board': Board.from_strings([
                     # bcdefgh
                     '....q...',  # 8
@@ -89,8 +86,7 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                 },
                 'expect_same_behaviour_for': ['rook'],
             },
-            {
-                'name': 'black_figure_should_not_be_able_to_move_from_straight',
+            { 'name': 'black_figure_should_not_be_able_to_move_from_straight',
                 'board': Board.from_strings([
                     # bcdefgh
                     '....Q...',  # 8
@@ -112,8 +108,7 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                 },
                 'expect_same_behaviour_from': ['rook'],
             },
-            {
-                'name': 'knight_should_be_allowed_only_to_block',
+            { 'name': 'knight_should_be_allowed_only_to_block',
                 'board': Board.from_strings([
                     # bcdefgh
                     'N.....n.',  # 8
@@ -134,8 +129,7 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                     }
                 }
             },
-            {
-                'name': 'pawn_should_be_allowed_only_to_block',
+            { 'name': 'pawn_should_be_allowed_only_to_block',
                 'board': Board.from_strings([
                     # bcdefgh
                     '........',  # 8
@@ -153,8 +147,7 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                     },
                 }
             },
-            {
-                'name': 'should_only_be_able_to_capture_when_knight_checks',
+            { 'name': 'should_only_be_able_to_capture_when_knight_checks',
                 'board': Board.from_strings([
                     # bcdefgh
                     '.....k..',  # 8
@@ -193,6 +186,24 @@ class CheckAwarenessTests(MoveGenerationTestCase):
                     ]),
                 }
             },
+            { 'name': 'pieces_that_cannot_protect_king_should_have_no_moves',
+                'board': Board.from_strings([
+                    # bcdefgh
+                    '.....k..',  # 8
+                    '.......N',  # 7
+                    '...q....',  # 6
+                    '........',  # 5
+                    '........',  # 4
+                    '...Q....',  # 3
+                    'n.......',  # 2
+                    '..K.....'   # 1
+                    # bcdefgh
+                ]),
+                'want': {
+                    'white': {P('d3'): {}},
+                    'black': {P('d6'): {}},
+                }
+            },
         ]
         for test_case in test_table:
             self.runMoveGenerationTest(test_case)
@@ -227,8 +238,7 @@ class CheckAwarenessTests(MoveGenerationTestCase):
 
     def test_king_should_not_be_able_to_step_on_attacked_square(self):
         test_table = [
-            *self.all_board_rotations_of({
-                'name': 'should_not_be_able_to_step_on_attacked_squares',
+            *self.all_board_rotations_of({ 'name': 'should_not_be_able_to_step_on_attacked_squares',
                 'board': Board.from_strings([
                     # bcdefgh
                     '...k....',  # 8
