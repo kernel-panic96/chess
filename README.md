@@ -1,4 +1,6 @@
 ![](https://github.com/kernel-panic96/chess/workflows/Build/badge.svg)
+[![chess/ coverage](https://codecov.io/gh/kernel-panic96/chess/branch/master/graph/badge.svg)](https://codecov.io/gh/kernel-panic96/chess)
+
 
 This is a chess program written in Python 3.
 The focus was to write it cleanly and experiment freely, not to be performant.
