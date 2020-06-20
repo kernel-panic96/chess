@@ -382,8 +382,8 @@ class Board:
                         elif piece_type is Type.PAWN:
                             direction = Direction.DOWN if piece.color == Color.WHITE else Direction.UP
                             pawn_positions = {
-                                Position(rank=position.rank + direction, file=position.file + Direction.RIGHT),
-                                Position(rank=position.rank + direction, file=position.file + Direction.LEFT)
+                                Position(rank=start_pos.rank + direction, file=start_pos.file + Direction.RIGHT),
+                                Position(rank=start_pos.rank + direction, file=start_pos.file + Direction.LEFT)
                             }
                             if position in pawn_positions:
                                 yield position

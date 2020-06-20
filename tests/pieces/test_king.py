@@ -205,7 +205,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     '..P.....',  # 6
                     '........',  # 5
                     '........',  # 4
-                    '..P.....',  # 3
+                    '..p.....',  # 3
                     '.K......',  # 2
                     '........'   # 1
                 ]),
@@ -218,7 +218,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     '...N....',  # 6
                     '........',  # 5
                     '........',  # 4
-                    '...N....',  # 3
+                    '...n....',  # 3
                     '.K......',  # 2
                     '........'   # 1
                 ]),
@@ -309,9 +309,9 @@ class MoveGenerationTests(MoveGenerationTestCase):
             with self.subTest('/'.join([test_case['name'], 'white'])):
                 white_king_pos = test_board.kings[Color.WHITE]
                 white_king = test_board[white_king_pos.rank][white_king_pos.file]
-                white_king.is_in_check(test_board, white_king_pos)
+                self.assertTrue(white_king.is_in_check(test_board, white_king_pos))
 
             with self.subTest('/'.join([test_case['name'], 'black'])):
                 black_king_pos = test_board.kings[Color.BLACK]
                 black_king = test_board[black_king_pos.rank][black_king_pos.file]
-                black_king.is_in_check(test_board, black_king_pos)
+                self.assertTrue(black_king.is_in_check(test_board, black_king_pos))
