@@ -33,7 +33,7 @@ class _BoardAwareList(list):
 
 def _maybe_castle(func):
     @fp.wraps(func)
-    def wrapper(board, *, from_pos: Position, to_pos: Position) -> func.__annotations__['return']:
+    def wrapper(board, *, from_pos: Position, to_pos: Position):
         res = func(board, from_pos=from_pos, to_pos=to_pos)
 
         square = board[to_pos.rank][to_pos.file]
