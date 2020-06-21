@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import contextlib
 import functools as fp
 import math
 from copy import deepcopy
-from typing import Generator, Union, Dict, Iterator, Iterable, overload
+from typing import Generator, Union, Dict, Iterator, Iterable, List
 
 from chess.pieces import *
 from chess.constants import CastlingPerm
@@ -23,10 +25,19 @@ class OutOfBounds:
 OutOfBounds = OutOfBounds()
 
 
-class _BoardAwareList(list):
+class _RankList(list):
+    """A bit hacky way to make `board[rank][file] = new_piece`
+        Update board state like the kings' position dict
+    """
+    def __init__(self, *args, rank, board, **kwargs):
+        self.__board = board
+        self.__rank = rank
+
+        super().__init__(*args, **kwargs)
+
     def __setitem__(self, key, value):
         if hasattr(value, 'figure_type') and value.figure_type is Type.KING:
-            self.board.kings[value.color] = Position(self.rank, key)
+            self.__board.kings[value.color] = Position(self.__rank, key)
 
         super().__setitem__(key, value)
 
@@ -62,8 +73,8 @@ def _set_or_clear_en_passant(func):
         square = board[to_pos.rank][to_pos.file]
 
         if to_pos == board.en_passant_pos:  # capture(delete) the pawn
-            if hasattr(square, 'figure_type') and square.figure_type is Type.PAWN:
-                board[from_pos.rank][to_pos.file] = None
+            assert isinstance(square, Pawn)
+            board[from_pos.rank][to_pos.file] = None
 
         if hasattr(square, 'figure_type') and square.figure_type is Type.PAWN and from_pos.dist(to_pos) == 2:
             direction = square.color.forward_direction
@@ -103,16 +114,10 @@ class Board:
         self.player, self.enemy = Color.WHITE, Color.BLACK
         self.en_passant_pos = None
         self.promotion_cb = promotion_cb
-
         self.castling_perms = {
             Color.WHITE: CastlingPerm.ALL,
             Color.BLACK: CastlingPerm.ALL
         }
-
-        for rank in reversed(Rank):
-            self.board[rank].board = self
-            self.board[rank].rank = rank
-
         self.kings = {
             Color.WHITE: None,
             Color.BLACK: None,
@@ -147,21 +152,14 @@ class Board:
 
         return board
 
-    def set_square(self, obj, rank: Rank, file: File) -> None:
-        if hasattr(obj, 'figure_type') and obj.figure_type is Type.KING:
-            self.kings[obj.color] = Position(Rank, File)
-
-        self.board[rank][file] = obj
-
-    @classmethod
-    def empty(cls):
+    def empty(self) -> List[Union[None, 'ChessPiece']]:
         side_padding = [OutOfBounds, OutOfBounds]
 
         top_padding = [OutOfBounds] * 12
         empty_row = side_padding + [None] * 8 + side_padding
         return (
             [top_padding] + [top_padding]
-            + [_BoardAwareList(empty_row, rank=rank) for rank in reversed(Rank)]
+            + [_RankList(empty_row, rank=rank, board=self) for rank in reversed(Rank)]
             + [top_padding] + [top_padding]
         )
 
@@ -230,16 +228,16 @@ class Board:
         Used in testing
 
         >>> board = Board.from_strings([
-        ...     "........",
-        ...     ".p......",
-        ...     "........",
+        ...     "p.......",
         ...     "........",
         ...     "........",
         ...     "........",
-        ...     ".P......",
-        ...     "........"
+        ...     "........",
+        ...     "........",
+        ...     "........",
+        ...     "P......."
         ... ])
-        >>> board[Rank.TWO][File.B]
+        >>> board[Rank.ONE][File.A]
         White Pawn
 
         '''
@@ -265,7 +263,7 @@ class Board:
         board = cls()
         for r, res in zip(list(Rank), reversed(projection)):
             for f, obj in zip(File, res):
-                board.set_square(obj, rank=r, file=f)
+                board[r][f] = obj
         return board
 
     def next_turn(self):
@@ -278,14 +276,14 @@ class Board:
         need not be 8x8. So use this or index the board with constants.Rank & File
 
         """
-        return [row[2:-2] for row in self.board[2:-2]]
+        return [row[2:-2] for row in self[2:-2]]
 
     def is_empty(self, position: Position):
-        square = self.board[position.rank][position.file]
+        square = self[position.rank][position.file]
         return square is None
 
     def is_out_of_bounds(self, pos: Position):
-        square = self.board[pos.rank][pos.file]
+        square = self[pos.rank][pos.file]
         return type(square) is type(OutOfBounds)
 
     def is_in_bounds(self, pos: Position):
@@ -297,18 +295,20 @@ class Board:
 
     @are_enemies.register
     def _(self, pos1: Position, pos2: Position) -> bool:
-        piece1 = self.board[pos1.rank][pos1.file]
-        piece2 = self.board[pos2.rank][pos2.file]
+        piece1 = self[pos1.rank][pos1.file]
+        piece2 = self[pos2.rank][pos2.file]
 
         return piece1 and piece2 and piece1.color != piece2.color
 
     @are_enemies.register
     def _(self, color: Color, pos2: Position) -> bool:
-        piece = self.board[pos2.rank][pos2.file]
+        piece = self[pos2.rank][pos2.file]
 
         return piece and color != piece.color
 
     def __getitem__(self, key: Union[int, Rank]):
+        if hasattr(key, 'value'):
+            key = key.value
         return self.board[key]
 
     def _get_position_in_single_direction(
@@ -364,7 +364,7 @@ class Board:
             for position in positions:
                 if not self.is_empty(position):
                     if self.are_enemies(color, position):
-                        piece = self.board[position.rank][position.file]
+                        piece = self[position.rank][position.file]
                         piece_type = piece.figure_type
 
                         if direction in Diagonal and piece_type in [Type.BISHOP, Type.QUEEN]:
@@ -429,8 +429,8 @@ class Board:
 
                 self.castling_perms[square.color] &= remove_mask
 
-        self.set_square(self[from_pos.rank][from_pos.file], to_pos.rank, to_pos.file)
-        self.set_square(None, from_pos.rank, from_pos.file)
+        self[to_pos.rank][to_pos.file] = self[from_pos.rank][from_pos.file]
+        self[from_pos.rank][from_pos.file] = None
 
     def shallow_copy(self, board) -> None:
         self.__dict__.update(board.__dict__)
@@ -466,7 +466,7 @@ class Board:
             return False
 
         king_pos = self.kings[color]
-        king = self.board[king_pos.rank][king_pos.file]
+        king = self[king_pos.rank][king_pos.file]
 
         if king.is_in_check(self, king_pos):
             return False
@@ -474,7 +474,6 @@ class Board:
         queen_side = castling_side == CastlingPerm.QUEEN_SIDE
         direction = Direction.LEFT if queen_side else Direction.RIGHT
 
-        castling_target_file = File.C if queen_side else File.G
         target_file = File.A if queen_side else File.H
 
         ps = seq(self.get_positions_in_direction(king_pos, direction))\

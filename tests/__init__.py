@@ -49,12 +49,12 @@ class MoveGenerationTestCase(unittest.TestCase):
                     figure_color = color_to_class[color.lower()]
                     pieces_under_test.extend(map(lambda piece: piece(figure_color), pieces))
 
-                for i, test_piece in enumerate(pieces_under_test):
+                for test_piece in pieces_under_test:
                     test_name = [test_case['name'], color, test_piece.type.name.lower()]
                     with self.subTest('/'.join(test_name)):
                         try:
                             test_board = deepcopy(board)
-                            test_board.set_square(test_piece, pos.rank, pos.file)
+                            test_board[pos.rank][pos.file] = test_piece
 
                             piece = test_board[pos.rank][pos.file]
                             if not hasattr(piece, 'generate_moves'):
@@ -179,8 +179,8 @@ def target_board(positions):
     wanted_moves = set()
     target = None
 
-    for (row_idx, row), cur_rank in zip(enumerate(positions), reversed(Rank)):
-        for (col_idx, col), cur_file in zip(enumerate(row), File):
+    for row, cur_rank in zip(positions, reversed(Rank)):
+        for col, cur_file in zip(row, File):
             if col == 'T':
                 target = Position(cur_rank, cur_file)
             elif col in ['x', 'X']:

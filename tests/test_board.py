@@ -13,12 +13,11 @@ from chess.constants import (
     FigureColor, FigureType
 )
 from chess.position import Position
-from chess.pieces import *
 
 
 class PropertyTests(unittest.TestCase):
     def test_empty_configuration(self):
-        board = Board.empty()
+        board = Board()
 
         expected = [
             [OutOfBounds] * 12,
@@ -35,147 +34,157 @@ class PropertyTests(unittest.TestCase):
             [OutOfBounds] * 12,
         ]
 
-        self.assertEqual(board, expected)
+        for i, (rank, expected_rank) in enumerate(zip(board, expected)):
+            for j, (file, expected_file) in enumerate(zip(rank, expected_rank)):
+                self.assertEqual(file, expected_file, msg=f'at index [{i}][{j}]')
 
     def test_empty_ctor_calls_board_empty(self):
         with patch('chess.board.Board.empty') as mock_empty:
-            board = Board()
+            Board()
             mock_empty.assert_called_once()
 
 
-class StandardConfigurationCorrectnessTests(unittest.TestCase):
+class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disable=no-member
     def init_mocks(self):
         class_dependencies = ['Pawn', 'Rook', 'Bishop', 'King', 'Queen', 'Knight']
         patchers = [patch(f'chess.board.{cls}') for cls in class_dependencies]
 
         for cls, patcher in zip(class_dependencies, patchers):
-            setattr(self, f'{cls}Mock', patcher.start())
+            setattr(self, f'{cls}', patcher.start())
 
         self.addCleanup(patch.stopall)
 
-    def setUp(self):
+    def test_pieces_are_initialized_correctly(self):
         self.init_mocks()
-        self.board = Board.standard_configuration()
+        # HACK: workaround false-positive linting issues - pylint no-member
+        PawnMock = getattr(self, 'Pawn')
+        RookMock = getattr(self, 'Rook')
+        KingMock = getattr(self, 'King')
+        BishopMock = getattr(self, 'Bishop')
+        KnightMock = getattr(self, 'Knight')
+        QueenMock = getattr(self, 'Queen')
 
-    def test_pawns_are_initialized_correctly(self):
-        self.assertEqual(self.PawnMock.call_count, 16)
+        board = Board.standard_configuration()
 
-        with self.subTest('White pawns'):
-            ctor_calls = [
-                call(FigureColor.WHITE) for f in File
-            ]
+        with self.subTest('pawns'):
+            self.assertEqual(PawnMock.call_count, 16)
 
-            self.PawnMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertTrue(all(square is self.PawnMock() for square in self.board[Rank.TWO][2:-2]))
+            with self.subTest('white'):
+                ctor_calls = [
+                    call(FigureColor.WHITE) for f in File
+                ]
 
-        with self.subTest('Black pawns'):
-            positions = [
-                call(FigureColor.BLACK) for f in File
-            ]
+                PawnMock.assert_has_calls(ctor_calls, any_order=True)  # pylint: disable=no-member
+                self.assertTrue(all(square is PawnMock() for square in board[Rank.TWO][2:-2]))  # pylint: disable=no-member
 
-            self.PawnMock.assert_has_calls(positions, any_order=True)
-            self.assertTrue(all(square is self.PawnMock() for square in self.board[Rank.SEVEN][2:-2]))
+            with self.subTest('black'):
+                positions = [
+                    call(FigureColor.BLACK) for f in File
+                ]
 
-    def test_rooks_are_initialized_correctly(self):
-        self.assertEqual(self.RookMock.call_count, 4)
+                PawnMock.assert_has_calls(positions, any_order=True)
+                self.assertTrue(all(square is PawnMock() for square in board[Rank.SEVEN][2:-2]))
 
-        with self.subTest('White rooks'):
-            ctor_calls = [
-                call(FigureColor.WHITE),
-                call(FigureColor.WHITE)
-            ]
+        with self.subTest('rooks'):
+            self.assertEqual(RookMock.call_count, 4)
 
-            self.RookMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertIs(self.board[Rank.ONE][File.A], self.RookMock())
-            self.assertIs(self.board[Rank.ONE][File.H], self.RookMock())
+            with self.subTest('white'):
+                ctor_calls = [
+                    call(FigureColor.WHITE),
+                    call(FigureColor.WHITE)
+                ]
 
-        with self.subTest('Black Rooks'):
-            ctor_calls = [
-                call(FigureColor.BLACK),
-                call(FigureColor.BLACK)
-            ]
+                RookMock.assert_has_calls(ctor_calls, any_order=True)
+                self.assertIs(board[Rank.ONE][File.A], RookMock())
+                self.assertIs(board[Rank.ONE][File.H], RookMock())
 
-            self.RookMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertIs(self.board[Rank.ONE][File.A], self.RookMock())
-            self.assertIs(self.board[Rank.ONE][File.H], self.RookMock())
+            with self.subTest('black'):
+                ctor_calls = [
+                    call(FigureColor.BLACK),
+                    call(FigureColor.BLACK)
+                ]
 
-    def test_knights_are_initialized_correctly(self):
-        self.assertEqual(self.KnightMock.call_count, 4)
+                RookMock.assert_has_calls(ctor_calls, any_order=True)
+                self.assertIs(board[Rank.ONE][File.A], RookMock())
+                self.assertIs(board[Rank.ONE][File.H], RookMock())
 
-        with self.subTest('White knights'):
-            ctor_calls = [
-                call(FigureColor.WHITE),
-                call(FigureColor.WHITE)
-            ]
+        with self.subTest('knights'):
+            self.assertEqual(KnightMock.call_count, 4)
 
-            self.KnightMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertIs(self.board[Rank.ONE][File.G], self.KnightMock())
-            self.assertIs(self.board[Rank.ONE][File.B], self.KnightMock())
+            with self.subTest('white'):
+                ctor_calls = [
+                    call(FigureColor.WHITE),
+                    call(FigureColor.WHITE)
+                ]
 
-        with self.subTest('Black knights'):
-            ctor_calls = [
-                call(FigureColor.BLACK),
-                call(FigureColor.BLACK),
-            ]
+                KnightMock.assert_has_calls(ctor_calls, any_order=True)
+                self.assertIs(board[Rank.ONE][File.G], KnightMock())
+                self.assertIs(board[Rank.ONE][File.B], KnightMock())
 
-            self.KnightMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertIs(self.board[Rank.EIGHT][File.G], self.KnightMock())
-            self.assertIs(self.board[Rank.EIGHT][File.B], self.KnightMock())
+            with self.subTest('black'):
+                ctor_calls = [
+                    call(FigureColor.BLACK),
+                    call(FigureColor.BLACK),
+                ]
 
-    def test_bishops_are_initialized_correctly(self):
-        self.assertEqual(self.BishopMock.call_count, 4)
+                KnightMock.assert_has_calls(ctor_calls, any_order=True)
+                self.assertIs(board[Rank.EIGHT][File.G], KnightMock())
+                self.assertIs(board[Rank.EIGHT][File.B], KnightMock())
 
-        with self.subTest('White bishops'):
-            ctor_calls = [
-                call(FigureColor.WHITE),
-                call(FigureColor.WHITE),
-            ]
-            self.BishopMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertIs(self.board[Rank.ONE][File.C], self.BishopMock())
-            self.assertIs(self.board[Rank.ONE][File.F], self.BishopMock())
+        with self.subTest('bishoops'):
+            self.assertEqual(BishopMock.call_count, 4)
 
-        with self.subTest('Black bishops'):
-            ctor_calls = [
-                call(FigureColor.BLACK),
-                call(FigureColor.BLACK),
-            ]
+            with self.subTest('white'):
+                ctor_calls = [
+                    call(FigureColor.WHITE),
+                    call(FigureColor.WHITE),
+                ]
+                BishopMock.assert_has_calls(ctor_calls, any_order=True)
+                self.assertIs(board[Rank.ONE][File.C], BishopMock())
+                self.assertIs(board[Rank.ONE][File.F], BishopMock())
 
-            self.BishopMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertIs(self.board[Rank.EIGHT][File.C], self.BishopMock())
-            self.assertIs(self.board[Rank.EIGHT][File.F], self.BishopMock())
+            with self.subTest('black'):
+                ctor_calls = [
+                    call(FigureColor.BLACK),
+                    call(FigureColor.BLACK),
+                ]
 
-    def test_queens_are_initiailized_correctly(self):
-        self.assertEqual(self.QueenMock.call_count, 2)
+                BishopMock.assert_has_calls(ctor_calls, any_order=True)
+                self.assertIs(board[Rank.EIGHT][File.C], BishopMock())
+                self.assertIs(board[Rank.EIGHT][File.F], BishopMock())
 
-        with self.subTest('White queens'):
-            ctor_calls = [call(FigureColor.WHITE)]
+        with self.subTest('queens'):
+            self.assertEqual(QueenMock.call_count, 2)
 
-            self.QueenMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertIs(self.board[Rank.ONE][File.D], self.QueenMock())
+            with self.subTest('white'):
+                ctor_calls = [call(FigureColor.WHITE)]
 
-        with self.subTest('Black queens'):
-            ctor_calls = [call(FigureColor.BLACK)]
+                QueenMock.assert_has_calls(ctor_calls, any_order=True)
+                self.assertIs(board[Rank.ONE][File.D], QueenMock())
 
-            self.QueenMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertIs(self.board[Rank.EIGHT][File.D], self.QueenMock())
+            with self.subTest('black'):
+                ctor_calls = [call(FigureColor.BLACK)]
 
-    def test_kings_are_initialized_correctly(self):
-        self.assertEqual(self.KingMock.call_count, 2)
+                QueenMock.assert_has_calls(ctor_calls, any_order=True)
+                self.assertIs(board[Rank.EIGHT][File.D], QueenMock())
 
-        with self.subTest('White king'):
-            ctor_calls = [call(FigureColor.WHITE)]
+        with self.subTest('kings'):
+            self.assertEqual(KingMock.call_count, 2)
 
-            self.KingMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertIs(self.board[Rank.ONE][File.E], self.KingMock())
+            with self.subTest('white'):
+                ctor_calls = [call(FigureColor.WHITE)]
 
-        with self.subTest('Black king'):
-            ctor_calls = [call(FigureColor.BLACK)]
+                KingMock.assert_has_calls(ctor_calls, any_order=True)
+                self.assertIs(board[Rank.ONE][File.E], KingMock())
 
-            self.KingMock.assert_has_calls(ctor_calls, any_order=True)
-            self.assertIs(self.board[Rank.EIGHT][File.E], self.KingMock())
+            with self.subTest('black'):
+                ctor_calls = [call(FigureColor.BLACK)]
+
+                KingMock.assert_has_calls(ctor_calls, any_order=True)
+                self.assertIs(board[Rank.EIGHT][File.E], KingMock())
 
 
-class BoardIterationTests(unittest.TestCase):
+class TestGetPositionsInDirection(unittest.TestCase):
     def setUp(self):
         self.board = Board()
         self.default_start = Position(Rank.TWO, File.B)
@@ -321,6 +330,7 @@ class UtilMethods(unittest.TestCase):
             with self.subTest('Both are white'):
                 piece1_mock.color = piece2_mock.color = FigureColor.WHITE
                 self.assertFalse(self.board.are_enemies(piece1_pos, piece2_pos))
+
             with self.subTest('Both are black'):
                 piece1_mock.color = piece2_mock.color = FigureColor.BLACK
                 self.assertFalse(self.board.are_enemies(piece1_pos, piece2_pos))
@@ -329,131 +339,7 @@ class UtilMethods(unittest.TestCase):
             with self.subTest('Both are white'):
                 piece1_mock.color = FigureColor.WHITE
                 self.assertFalse(self.board.are_enemies(FigureColor.WHITE, piece1_pos))
+
             with self.subTest('Both are black'):
                 piece1_mock.color = FigureColor.BLACK
                 self.assertFalse(self.board.are_enemies(FigureColor.BLACK, piece1_pos))
-
-
-class EnemyDetectionTests(unittest.TestCase):
-    SHOULD_DETECT_ALL = True
-    SHOULD_DETECT_NONE = False
-
-    def setUp(self):
-        self.white_piece = MagicMock()
-        self.black_piece = MagicMock()
-
-        self.white_piece_board = Board()
-        self.black_piece_board = Board()
-
-        self.white_piece_board.get_positions_in_direction = MagicMock()
-        self.black_piece_board.get_positions_in_direction = MagicMock()
-
-        self.origin = Position(Rank.FOUR, File.D)
-
-        self.diagonal_attack_positions = {
-            Position(self.origin.rank + 2, self.origin.file + 2),
-            Position(self.origin.rank + 2, self.origin.file - 2),
-            Position(self.origin.rank - 2, self.origin.file + 2),
-            Position(self.origin.rank - 2, self.origin.file - 2),
-        }
-
-        self.straights_attack_positions = {
-            Position(self.origin.rank + Direction.UP * 2, self.origin.file),
-            Position(self.origin.rank + Direction.DOWN * 2, self.origin.file),
-            Position(self.origin.rank, self.origin.file + Direction.LEFT * 2),
-            Position(self.origin.rank, self.origin.file + Direction.RIGHT * 2),
-        }
-
-        all_positions = itertools.chain(
-            self.diagonal_attack_positions,
-            self.straights_attack_positions,
-        )
-
-    def assertEnemyDetection(self, should_contain_all, directions, piece_types, attack_positions):
-        type(self.black_piece).figure_type = PropertyMock(return_value=piece_types)
-        type(self.white_piece).figure_type = PropertyMock(return_value=piece_types)
-
-        for pos in attack_positions:
-            self.white_piece_board[pos.rank][pos.file] = self.black_piece
-            self.black_piece_board[pos.rank][pos.file] = self.white_piece
-
-        positions = list(map(lambda pos: [pos], attack_positions))
-        positions = dict(zip(directions, positions))
-
-        self.black_piece_board.get_positions_in_direction.return_value = positions
-        self.white_piece_board.get_positions_in_direction.return_value = positions
-
-        self.assertSetEqual(
-            set(self.white_piece_board.get_attackers(self.origin, FigureColor.WHITE)),
-            attack_positions if should_contain_all else set()
-        )
-
-        self.assertSetEqual(
-            set(self.black_piece_board.get_attackers(self.origin, FigureColor.BLACK)),
-            attack_positions if should_contain_all else set()
-        )
-
-    def test_diagonals_with_bishops_and_queens(self):
-        types = [FigureType.QUEEN, FigureType.BISHOP]
-
-        for p_type in types:
-            with self.subTest(p_type.name.capitalize()):
-                self.assertEnemyDetection(
-                    self.SHOULD_DETECT_ALL,
-                    directions=Diagonal,
-                    piece_types=p_type,
-                    attack_positions=self.diagonal_attack_positions
-                )
-
-    def test_diagonals_with_pieces_which_cannot_slide_diagonally(self):
-        types = [FigureType.ROOK, FigureType.KING, FigureType.PAWN, FigureType.KNIGHT]
-
-        for p_type in types:
-            with self.subTest(p_type.name.capitalize()):
-                self.assertEnemyDetection(
-                    self.SHOULD_DETECT_NONE,
-                    directions=Diagonal,
-                    piece_types=p_type,
-                    attack_positions=self.diagonal_attack_positions
-                )
-
-    def test_straights_with_rooks_and_queens(self):
-        types = [FigureType.ROOK, FigureType.QUEEN]
-
-        for piece_type in types:
-            with self.subTest(piece_type.name.capitalize()):
-                self.assertEnemyDetection(
-                    self.SHOULD_DETECT_ALL,
-                    directions=list(Direction),
-                    piece_types=piece_type,
-                    attack_positions=self.straights_attack_positions,
-                )
-
-    def test_straights_with_pieces_which_cannot_slide_straight(self):
-        for piece in [FigureType.BISHOP, FigureType.KNIGHT, FigureType.PAWN, FigureType.KING]:
-            with self.subTest(piece.name.capitalize()):
-                self.assertEnemyDetection(
-                    self.SHOULD_DETECT_NONE,
-                    directions=list(Direction),
-                    piece_types=piece,
-                    attack_positions=self.straights_attack_positions,
-                )
-
-    def test_detects_king_attacks(self):
-        attack_positions = {
-            Position(rank=self.origin.rank - 1, file=self.origin.file + 1),
-            Position(rank=self.origin.rank,     file=self.origin.file + 1),
-            Position(rank=self.origin.rank + 1, file=self.origin.file + 1),
-            Position(rank=self.origin.rank + 1, file=self.origin.file),
-            Position(rank=self.origin.rank - 1, file=self.origin.file - 1),
-            Position(rank=self.origin.rank,     file=self.origin.file - 1),
-            Position(rank=self.origin.rank - 1, file=self.origin.file - 1),
-            Position(rank=self.origin.rank - 1, file=self.origin.file),
-        }
-
-        self.assertEnemyDetection(
-            self.SHOULD_DETECT_ALL,
-            directions=list(Direction) + list(Diagonal),
-            piece_types=FigureType.KING,
-            attack_positions=attack_positions
-        )
