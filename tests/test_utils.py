@@ -9,9 +9,9 @@ def rotate_board(board, times=1):
         if v is not None:
             board.kings[k] = rotate_position(v, times)
 
-    for _ in range(times):
-        board.board = (zip(*reversed(board.board)))
-        board.board = [list(elem) for elem in board.board]
+    for _ in range(times):  # ¯\_(ツ)_/¯
+        board._board = (zip(*reversed(board._board)))  # rotate 90 deg == transpose + reverse columns
+        board._board = [list(elem) for elem in board._board]
 
     return board
 

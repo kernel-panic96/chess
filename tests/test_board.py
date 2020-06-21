@@ -43,6 +43,12 @@ class PropertyTests(unittest.TestCase):
             Board()
             mock_empty.assert_called_once()
 
+    def test_next_turn_swaps_players(self):
+        board = Board()
+        p1, p2 = board.player, board.enemy
+        board.next_turn()
+
+        self.assertEqual((p2, p1), (board.player, board.enemy))
 
 class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disable=no-member
     def init_mocks(self):

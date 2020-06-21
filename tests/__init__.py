@@ -67,9 +67,9 @@ class MoveGenerationTestCase(unittest.TestCase):
                                 want = _transform_relative_offset_to_position(pos)(want)
 
                             assert_fn = assert_fn or self.assertSetEqual
-                            assert_fn(want, actual)
+                            assert_fn(want, actual, msg=f'testing possible moves for {board[pos.rank][pos.file]} @ {pos}')
                         except AssertionError as e:
-                            raise AssertionError(f'testing {board[pos.rank][pos.file]} @ {pos}') from e
+                            raise
                         except Exception as e:
                             raise e.__class__(f'During test "{color} {test_case["name"]}"') from e
 

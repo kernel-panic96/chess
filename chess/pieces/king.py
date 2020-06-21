@@ -24,10 +24,10 @@ class King(ChessPiece):
 
         castling_moves = []
         if board.is_able_to_castle(self.color, CastlingPerm.QUEEN_SIDE):
-            castling_moves.append(Position(king_pos.rank, File.G))
+            castling_moves.append(Position(king_pos.rank, File.C))
 
         if board.is_able_to_castle(self.color, CastlingPerm.KING_SIDE):
-            castling_moves.append(Position(king_pos.rank, File.C))
+            castling_moves.append(Position(king_pos.rank, File.G))
 
         return seq(normal_moves, castling_moves).flatten().to_list()
 

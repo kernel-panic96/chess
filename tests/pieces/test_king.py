@@ -184,7 +184,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
 
     def test_is_in_check_from_all_figures(self):
         test_table = [
-            { 'name': 'pawn checks from the left',
+            {'name': 'pawn checks from the left',
                 'board': Board.from_strings([
                     # bcdefgh
                     '........',  # 8
@@ -197,7 +197,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     '........'   # 1
                 ]),
             },
-            { 'name': 'pawn checks from the right',
+            {'name': 'pawn checks from the right',
                 'board': Board.from_strings([
                     # bcdefgh
                     '........',  # 8
@@ -210,7 +210,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     '........'   # 1
                 ]),
             },
-            { 'name': 'knight checks',
+            {'name': 'knight checks',
                 'board': Board.from_strings([
                     # bcdefgh
                     '........',  # 8
@@ -223,7 +223,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     '........'   # 1
                 ]),
             },
-            { 'name': 'queen checks main diagonal',
+            {'name': 'queen checks main diagonal',
                 'board': Board.from_strings([
                     # bcdefgh
                     '........',  # 8
@@ -236,7 +236,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     '........'   # 1
                 ]),
             },
-            { 'name': 'queen checks main diagonal 2',
+            {'name': 'queen checks main diagonal 2',
                 'board': Board.from_strings([
                     # bcdefgh
                     'Q.......',  # 8
@@ -249,7 +249,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     '........'   # 1
                 ]),
             },
-            { 'name': 'queen checks sec diagonal',
+            {'name': 'queen checks sec diagonal',
                 'board': Board.from_strings([
                     # bcdefgh
                     '..Q.....',  # 8
@@ -262,7 +262,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     '........'   # 1
                 ]),
             },
-            { 'name': 'queen checks sec diagonal 2',
+            {'name': 'queen checks sec diagonal 2',
                 'board': Board.from_strings([
                     # bcdefgh
                     '........',  # 8
@@ -275,7 +275,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     'q.......'   # 1
                 ]),
             },
-            { 'name': 'rook checks',
+            {'name': 'rook checks',
                 'board': Board.from_strings([
                     # bcdefgh
                     '........',  # 8
@@ -288,7 +288,7 @@ class MoveGenerationTests(MoveGenerationTestCase):
                     '........'   # 1
                 ]),
             },
-            { 'name': 'bishop checks',
+            {'name': 'bishop checks',
                 'board': Board.from_strings([
                     # bcdefgh
                     '...B....',  # 8

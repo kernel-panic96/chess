@@ -3,10 +3,13 @@ from __future__ import annotations
 import contextlib
 import functools as fp
 import math
-from copy import deepcopy
 from typing import Generator, Union, Dict, Iterator, Iterable, List
 
-from chess.pieces import *
+from functional import seq
+
+from chess.pieces import (
+    Rook, Bishop, King, Queen, Pawn, Knight
+)
 from chess.constants import CastlingPerm
 from chess.constants import Diagonal, Direction
 from chess.constants import FigureColor as Color, FigureType as Type
@@ -14,12 +17,11 @@ from chess.constants import Rank, File
 from chess.position import Position
 from chess.utils import method_dispatch
 
-from functional import seq
+P = Position.from_str
 
 
 class OutOfBounds:
-    def __repr__(self):
-        return 'x'
+    pass
 
 
 OutOfBounds = OutOfBounds()
@@ -42,55 +44,48 @@ class _RankList(list):
         super().__setitem__(key, value)
 
 
-def _maybe_castle(func):
-    @fp.wraps(func)
-    def wrapper(board, *, from_pos: Position, to_pos: Position):
-        res = func(board, from_pos=from_pos, to_pos=to_pos)
+def _maybe_castle(board_move_func):
+    @fp.wraps(board_move_func)
+    def maybe_castle_wrapper(board, *, from_pos: Position, to_pos: Position):
+        board_move_func(board, from_pos=from_pos, to_pos=to_pos)
 
         square = board[to_pos.rank][to_pos.file]
-
         if getattr(square, 'figure_type', None) is Type.KING:
             board.castling_perms[square.color] = CastlingPerm.NONE
 
             if from_pos.dist(to_pos) == 2:  # Castling -> Move rook
                 direction = from_pos.relative_direction_towards_position(to_pos)
 
-                if direction is Direction.LEFT:
-                    board._castle_move_rook(square.color, CastlingPerm.QUEEN_SIDE)
-                else:
-                    board._castle_move_rook(square.color, CastlingPerm.KING_SIDE)
+                old_file, new_file = ('a', 'd') if direction is Direction.LEFT else ('h', 'f')
+                rank = '1' if square.color is Color.WHITE else '8'
 
-        return res
+                board.move(from_pos=P(f'{old_file}{rank}'), to_pos=P(f'{new_file}{rank}'))
 
-    return wrapper
+    return maybe_castle_wrapper
 
 
-def _set_or_clear_en_passant(func):
-    @fp.wraps(func)
-    def wrapper(board, *, from_pos: Position, to_pos: Position):
-        res = func(board, from_pos=from_pos, to_pos=to_pos)
+def _set_or_clear_en_passant(board_move_func):
+    @fp.wraps(board_move_func)
+    def en_passant_handler(board, *, from_pos: Position, to_pos: Position):
+        board_move_func(board, from_pos=from_pos, to_pos=to_pos)
 
         square = board[to_pos.rank][to_pos.file]
-
         if to_pos == board.en_passant_pos:  # capture(delete) the pawn
             assert isinstance(square, Pawn)
             board[from_pos.rank][to_pos.file] = None
 
+        board.en_passant_pos = None
         if hasattr(square, 'figure_type') and square.figure_type is Type.PAWN and from_pos.dist(to_pos) == 2:
             direction = square.color.forward_direction
             board.en_passant_pos = Position(to_pos.rank - direction, to_pos.file)
-        else:
-            board.en_passant_pos = None
 
-        return res
-
-    return wrapper
+    return en_passant_handler
 
 
-def _promote_if_necessary(func):
-    @fp.wraps(func)
-    def wrapper(board, *, from_pos: Position, to_pos: Position):
-        res = func(board, from_pos=from_pos, to_pos=to_pos)
+def _promote_if_necessary(board_move_func):
+    @fp.wraps(board_move_func)
+    def conditional_promote_wrapper(board, *, from_pos: Position, to_pos: Position):
+        board_move_func(board, from_pos=from_pos, to_pos=to_pos)
         square = board[to_pos.rank][to_pos.file]
 
         if hasattr(square, 'figure_type') and square.figure_type is Type.PAWN:
@@ -99,18 +94,14 @@ def _promote_if_necessary(func):
             if to_pos.rank == last_rank:
                 piece_cls = board.promotion_cb()
 
-                board[to_pos.rank][to_pos.file] = piece_cls(
-                    square.color,
-                )
+                board[to_pos.rank][to_pos.file] = piece_cls(square.color) 
 
-        return res
-
-    return wrapper
+    return conditional_promote_wrapper
 
 
 class Board:
     def __init__(self, promotion_cb=None):
-        self.board = self.empty()
+        self._board = self.empty()
         self.player, self.enemy = Color.WHITE, Color.BLACK
         self.en_passant_pos = None
         self.promotion_cb = promotion_cb
@@ -127,16 +118,12 @@ class Board:
     def standard_configuration(cls):
         board = cls()
 
-        BlackPawn = fp.partial(Pawn, Color.BLACK)
-        WhitePawn = fp.partial(Pawn, Color.WHITE)
-
-        main_rank = seq(Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook)
-
         padding = 2
-        board[Rank.ONE][padding:-padding]   = main_rank.map(lambda kls: kls(Color.WHITE)).list()
+        main_rank = seq(Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook)
+        board[Rank.ONE][padding:-padding] = main_rank.map(lambda kls: kls(Color.WHITE)).list()
         board[Rank.EIGHT][padding:-padding] = main_rank.map(lambda kls: kls(Color.BLACK)).list()
-        board[Rank.TWO][padding:-padding]   = main_rank.map(lambda _: WhitePawn()).list()
-        board[Rank.SEVEN][padding:-padding] = main_rank.map(lambda _: BlackPawn()).list()
+        board[Rank.TWO][padding:-padding] = main_rank.map(lambda _: Pawn(Color.WHITE)).list()
+        board[Rank.SEVEN][padding:-padding] = main_rank.map(lambda _: Pawn(Color.BLACK)).list()
 
         board.kings = {
             Color.BLACK: Position(Rank.EIGHT, File.E),
@@ -147,8 +134,6 @@ class Board:
 
         board.castling_perms[Color.WHITE] = CastlingPerm.ALL
         board.castling_perms[Color.BLACK] = CastlingPerm.ALL
-
-        board.en_passant_pos = None
 
         return board
 
@@ -162,11 +147,6 @@ class Board:
             + [_RankList(empty_row, rank=rank, board=self) for rank in reversed(Rank)]
             + [top_padding] + [top_padding]
         )
-
-    @classmethod
-    def from_fen_file(cls, fname: str):
-        with open(fname) as file_handle:
-            return cls.from_fen(file_handle.readline())
 
     fen_lookup_table = {
         'N': Knight,
@@ -243,19 +223,19 @@ class Board:
         '''
 
         lookup = {
-            'N': fp.partial(Knight, Color.WHITE),
-            'K': fp.partial(King,   Color.WHITE),
-            'B': fp.partial(Bishop, Color.WHITE),
-            'R': fp.partial(Rook,   Color.WHITE),
-            'P': fp.partial(Pawn,   Color.WHITE),
-            'Q': fp.partial(Queen,  Color.WHITE),
+            'N': fp.partial(Knight, Color.WHITE),  # pylint: disable=bad-whitespace
+            'K': fp.partial(King,   Color.WHITE),  # pylint: disable=bad-whitespace
+            'B': fp.partial(Bishop, Color.WHITE),  # pylint: disable=bad-whitespace
+            'R': fp.partial(Rook,   Color.WHITE),  # pylint: disable=bad-whitespace
+            'P': fp.partial(Pawn,   Color.WHITE),  # pylint: disable=bad-whitespace
+            'Q': fp.partial(Queen,  Color.WHITE),  # pylint: disable=bad-whitespace
 
-            'n': fp.partial(Knight, Color.BLACK),
-            'k': fp.partial(King,   Color.BLACK),
-            'b': fp.partial(Bishop, Color.BLACK),
-            'r': fp.partial(Rook,   Color.BLACK),
-            'p': fp.partial(Pawn,   Color.BLACK),
-            'q': fp.partial(Queen,  Color.BLACK),
+            'n': fp.partial(Knight, Color.BLACK),  # pylint: disable=bad-whitespace
+            'k': fp.partial(King,   Color.BLACK),  # pylint: disable=bad-whitespace
+            'b': fp.partial(Bishop, Color.BLACK),  # pylint: disable=bad-whitespace
+            'r': fp.partial(Rook,   Color.BLACK),  # pylint: disable=bad-whitespace
+            'p': fp.partial(Pawn,   Color.BLACK),  # pylint: disable=bad-whitespace
+            'q': fp.partial(Queen,  Color.BLACK),  # pylint: disable=bad-whitespace
 
             '.': lambda: None
         }
@@ -309,12 +289,12 @@ class Board:
     def __getitem__(self, key: Union[int, Rank]):
         if hasattr(key, 'value'):
             key = key.value
-        return self.board[key]
+        return self._board[key]
 
     def _get_position_in_single_direction(
-        self,
-        start_pos: Position,
-        direction: Union[Direction, Diagonal]
+            self,
+            start_pos: Position,
+            direction: Union[Direction, Diagonal]
     ) -> Generator[Position, None, None]:
         rank, file = start_pos.rank, start_pos.file
 
@@ -338,9 +318,9 @@ class Board:
             curr_pos.file += delta_file
 
     def get_positions_in_direction(
-        self,
-        start_pos: Position,
-        *directions: Union[Direction, Diagonal]
+            self,
+            start_pos: Position,
+            *directions: Union[Direction, Diagonal]
     ) -> Dict[Union[Direction, Diagonal], Iterator[Position]]:
         if len(directions) == 1:
             return self._get_position_in_single_direction(start_pos, directions[0])
@@ -351,9 +331,9 @@ class Board:
         }
 
     def get_attackers(
-        self,
-        start_pos: Position,
-        color: Color
+            self,
+            start_pos: Position,
+            color: Color
     ) -> Generator[Position, None, None]:
         all_directions = list(Diagonal) + list(Direction)
 
@@ -362,46 +342,34 @@ class Board:
 
         for direction, positions in positions_by_dir.items():
             for position in positions:
-                if not self.is_empty(position):
-                    if self.are_enemies(color, position):
-                        piece = self[position.rank][position.file]
-                        piece_type = piece.figure_type
+                if not self.is_empty(position) and self.are_enemies(color, position):
+                    piece = self[position.rank][position.file]
+                    piece_type = piece.figure_type
 
-                        if direction in Diagonal and piece_type in [Type.BISHOP, Type.QUEEN]:
+                    if direction in Diagonal and piece_type in [Type.BISHOP, Type.QUEEN]:
+                        yield position
+
+                    elif direction in Direction and piece_type in [Type.ROOK, Type.QUEEN]:
+                        yield position
+
+                    elif direction == 'Knight' and piece_type is Type.KNIGHT:
+                        yield position
+
+                    elif piece_type is Type.KING and start_pos.dist(position) == 1:
+                        yield position
+
+                    elif piece_type is Type.PAWN:
+                        direction = Direction.DOWN if piece.color == Color.WHITE else Direction.UP
+                        pawn_positions = {
+                            Position(rank=start_pos.rank + direction, file=start_pos.file + Direction.RIGHT),
+                            Position(rank=start_pos.rank + direction, file=start_pos.file + Direction.LEFT)
+                        }
+                        if position in pawn_positions:
                             yield position
 
-                        elif direction in Direction and piece_type in [Type.ROOK, Type.QUEEN]:
-                            yield position
-
-                        elif direction == 'Knight' and piece_type is Type.KNIGHT:
-                            yield position
-
-                        elif piece_type is Type.KING and start_pos.dist(position) == 1:
-                            yield position
-
-                        elif piece_type is Type.PAWN:
-                            direction = Direction.DOWN if piece.color == Color.WHITE else Direction.UP
-                            pawn_positions = {
-                                Position(rank=start_pos.rank + direction, file=start_pos.file + Direction.RIGHT),
-                                Position(rank=start_pos.rank + direction, file=start_pos.file + Direction.LEFT)
-                            }
-                            if position in pawn_positions:
-                                yield position
-
-                    if direction != 'Knight':
-                        break
-
-    def _castle_move_rook(self, color: Color, side: CastlingPerm) -> None:
-        rank = Rank.ONE if color is Color.WHITE else Rank.EIGHT
-
-        if side is CastlingPerm.QUEEN_SIDE:
-            from_pos = Position(rank, File.A)
-            to_pos = Position(rank, File.D)
-        else:
-            from_pos = Position(rank, File.H)
-            to_pos = Position(rank, File.F)
-
-        self.move(from_pos=from_pos, to_pos=to_pos)
+                elif not self.is_empty(position) and direction != 'Knight': 
+                    # every other piece is blockable so we can stop going further
+                    break
 
     @_promote_if_necessary
     @_maybe_castle
@@ -421,9 +389,9 @@ class Board:
         if square.figure_type is Type.ROOK:
             if self.castling_perms[square.color]:
                 if from_pos.file == File.A:
-                    remove_mask = ~CastlingPerm.KING_SIDE
-                elif from_pos.file == File.H:
                     remove_mask = ~CastlingPerm.QUEEN_SIDE
+                elif from_pos.file == File.H:
+                    remove_mask = ~CastlingPerm.KING_SIDE
                 else:
                     remove_mask = ~CastlingPerm.NONE
 
@@ -434,11 +402,6 @@ class Board:
 
     def shallow_copy(self, board) -> None:
         self.__dict__.update(board.__dict__)
-        # self.board = board.board
-        # self.kings = board.kings
-        # self.player, self.enemy = board.player, board.enemy
-        # self.castling_perms = board.castling_perms
-        # self.en_passant_pos = board.en_passant_pos
 
     @contextlib.contextmanager
     def temporarily_remove_position(self, *positions):
