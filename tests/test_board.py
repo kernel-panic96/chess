@@ -10,9 +10,11 @@ from chess.board import Board, OutOfBounds
 from chess.constants import (
     Rank, File,
     Direction, Diagonal,
-    FigureColor, FigureType
+    FigureColor as Color, FigureType as Type
 )
 from chess.position import Position
+
+P = Position.from_str
 
 
 class PropertyTests(unittest.TestCase):
@@ -77,7 +79,7 @@ class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disab
 
             with self.subTest('white'):
                 ctor_calls = [
-                    call(FigureColor.WHITE) for f in File
+                    call(Color.WHITE) for f in File
                 ]
 
                 PawnMock.assert_has_calls(ctor_calls, any_order=True)  # pylint: disable=no-member
@@ -85,7 +87,7 @@ class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disab
 
             with self.subTest('black'):
                 positions = [
-                    call(FigureColor.BLACK) for f in File
+                    call(Color.BLACK) for f in File
                 ]
 
                 PawnMock.assert_has_calls(positions, any_order=True)
@@ -96,8 +98,8 @@ class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disab
 
             with self.subTest('white'):
                 ctor_calls = [
-                    call(FigureColor.WHITE),
-                    call(FigureColor.WHITE)
+                    call(Color.WHITE),
+                    call(Color.WHITE)
                 ]
 
                 RookMock.assert_has_calls(ctor_calls, any_order=True)
@@ -106,8 +108,8 @@ class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disab
 
             with self.subTest('black'):
                 ctor_calls = [
-                    call(FigureColor.BLACK),
-                    call(FigureColor.BLACK)
+                    call(Color.BLACK),
+                    call(Color.BLACK)
                 ]
 
                 RookMock.assert_has_calls(ctor_calls, any_order=True)
@@ -119,8 +121,8 @@ class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disab
 
             with self.subTest('white'):
                 ctor_calls = [
-                    call(FigureColor.WHITE),
-                    call(FigureColor.WHITE)
+                    call(Color.WHITE),
+                    call(Color.WHITE)
                 ]
 
                 KnightMock.assert_has_calls(ctor_calls, any_order=True)
@@ -129,8 +131,8 @@ class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disab
 
             with self.subTest('black'):
                 ctor_calls = [
-                    call(FigureColor.BLACK),
-                    call(FigureColor.BLACK),
+                    call(Color.BLACK),
+                    call(Color.BLACK),
                 ]
 
                 KnightMock.assert_has_calls(ctor_calls, any_order=True)
@@ -142,8 +144,8 @@ class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disab
 
             with self.subTest('white'):
                 ctor_calls = [
-                    call(FigureColor.WHITE),
-                    call(FigureColor.WHITE),
+                    call(Color.WHITE),
+                    call(Color.WHITE),
                 ]
                 BishopMock.assert_has_calls(ctor_calls, any_order=True)
                 self.assertIs(board[Rank.ONE][File.C], BishopMock())
@@ -151,8 +153,8 @@ class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disab
 
             with self.subTest('black'):
                 ctor_calls = [
-                    call(FigureColor.BLACK),
-                    call(FigureColor.BLACK),
+                    call(Color.BLACK),
+                    call(Color.BLACK),
                 ]
 
                 BishopMock.assert_has_calls(ctor_calls, any_order=True)
@@ -163,13 +165,13 @@ class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disab
             self.assertEqual(QueenMock.call_count, 2)
 
             with self.subTest('white'):
-                ctor_calls = [call(FigureColor.WHITE)]
+                ctor_calls = [call(Color.WHITE)]
 
                 QueenMock.assert_has_calls(ctor_calls, any_order=True)
                 self.assertIs(board[Rank.ONE][File.D], QueenMock())
 
             with self.subTest('black'):
-                ctor_calls = [call(FigureColor.BLACK)]
+                ctor_calls = [call(Color.BLACK)]
 
                 QueenMock.assert_has_calls(ctor_calls, any_order=True)
                 self.assertIs(board[Rank.EIGHT][File.D], QueenMock())
@@ -178,13 +180,13 @@ class StandardConfigurationCorrectnessTests(unittest.TestCase):  # pylint: disab
             self.assertEqual(KingMock.call_count, 2)
 
             with self.subTest('white'):
-                ctor_calls = [call(FigureColor.WHITE)]
+                ctor_calls = [call(Color.WHITE)]
 
                 KingMock.assert_has_calls(ctor_calls, any_order=True)
                 self.assertIs(board[Rank.ONE][File.E], KingMock())
 
             with self.subTest('black'):
-                ctor_calls = [call(FigureColor.BLACK)]
+                ctor_calls = [call(Color.BLACK)]
 
                 KingMock.assert_has_calls(ctor_calls, any_order=True)
                 self.assertIs(board[Rank.EIGHT][File.E], KingMock())
@@ -311,18 +313,18 @@ class UtilMethods(unittest.TestCase):
             piece1_pos = Position(Rank.ONE, File.A)
             piece2_pos = Position(Rank.ONE, File.B)
 
-            self.board[piece1_pos.rank][piece1_pos.file] = MagicMock(color=FigureColor.BLACK)
-            self.board[piece2_pos.rank][piece2_pos.file] = MagicMock(color=FigureColor.WHITE)
+            self.board[piece1_pos.rank][piece1_pos.file] = MagicMock(color=Color.BLACK)
+            self.board[piece2_pos.rank][piece2_pos.file] = MagicMock(color=Color.WHITE)
 
             self.assertTrue(self.board.are_enemies(piece1_pos, piece2_pos))
             self.assertTrue(self.board.are_enemies(piece2_pos, piece1_pos))
 
-        with self.subTest('Type of first positional argument is FigureColor'):
+        with self.subTest('Type of first positional argument is Color'):
             piece_pos = Position(Rank.ONE, File.A)
 
-            self.board[piece_pos.rank][piece_pos.file] = MagicMock(color=FigureColor.BLACK)
+            self.board[piece_pos.rank][piece_pos.file] = MagicMock(color=Color.BLACK)
 
-            self.assertTrue(self.board.are_enemies(FigureColor.WHITE, piece_pos))
+            self.assertTrue(self.board.are_enemies(Color.WHITE, piece_pos))
 
     def test_are_enemies_should_be_negative(self):
         piece1_pos = Position(Rank.ONE, File.A)
@@ -334,18 +336,46 @@ class UtilMethods(unittest.TestCase):
 
         with self.subTest('Positional arguments are both Position instances'):
             with self.subTest('Both are white'):
-                piece1_mock.color = piece2_mock.color = FigureColor.WHITE
+                piece1_mock.color = piece2_mock.color = Color.WHITE
                 self.assertFalse(self.board.are_enemies(piece1_pos, piece2_pos))
 
             with self.subTest('Both are black'):
-                piece1_mock.color = piece2_mock.color = FigureColor.BLACK
+                piece1_mock.color = piece2_mock.color = Color.BLACK
                 self.assertFalse(self.board.are_enemies(piece1_pos, piece2_pos))
 
-        with self.subTest('Type of first positional argument is FigureColor'):
+        with self.subTest('Type of first positional argument is Color'):
             with self.subTest('Both are white'):
-                piece1_mock.color = FigureColor.WHITE
-                self.assertFalse(self.board.are_enemies(FigureColor.WHITE, piece1_pos))
+                piece1_mock.color = Color.WHITE
+                self.assertFalse(self.board.are_enemies(Color.WHITE, piece1_pos))
 
             with self.subTest('Both are black'):
-                piece1_mock.color = FigureColor.BLACK
-                self.assertFalse(self.board.are_enemies(FigureColor.BLACK, piece1_pos))
+                piece1_mock.color = Color.BLACK
+                self.assertFalse(self.board.are_enemies(Color.BLACK, piece1_pos))
+
+    def test_get_attackers_detects_king_attacks(self):
+        """The placement of this test must seem off
+            The bulk of the use cases are get_attackers are
+            tested inderectly in the check awareness tests
+
+            The only use case that cannot be tested with check awareness
+            is when the king attacks something
+        """
+        board = Board.from_strings([
+            # bcdefgh
+            "p.......",  # 8 
+            "K.......",  # 7 
+            "........",  # 6 
+            "........",  # 5 
+            "........",  # 4 
+            "........",  # 3 
+            "k.......",  # 2 
+            "P......."   # 1
+        ])
+
+        with self.subTest('white pawn attacked'):
+            attackers = board.get_attackers(P('a1'), Color.WHITE)
+            self.assertEqual([P('a2')], list(attackers))
+
+        with self.subTest('black pawn attacked'):
+            attackers = board.get_attackers(P('a8'), Color.BLACK)
+            self.assertEqual([P('a7')], list(attackers))

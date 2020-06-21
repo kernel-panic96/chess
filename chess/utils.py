@@ -63,7 +63,8 @@ def prune_moves_if_king_in_check(method):
 
             return list(filtered)
 
-        elif attack_direction in [Direction.LEFT, Direction.RIGHT]:
+        else:
+            assert attack_direction in [Direction.LEFT, Direction.RIGHT]
             target_rank = king_pos.rank
             filtered = filter(lambda pos: pos.rank == target_rank, moves)
             filtered = filter(lambda pos: pos.within(attackers_positions[0], king_pos), filtered)

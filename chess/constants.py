@@ -289,7 +289,8 @@ class Direction(Enum):
             return cls.DOWN
         elif name == 'RIGHT':
             return cls.RIGHT
-        elif name == 'LEFT':
+        else:
+            assert name == 'LEFT'
             return cls.LEFT
 
     @property

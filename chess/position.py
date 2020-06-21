@@ -1,5 +1,4 @@
 from chess.constants import Rank, File, Direction, Diagonal
-import math
 
 
 class Position:
@@ -151,7 +150,7 @@ class Position:
             return Diagonal((dir_vertical, dir_horizontal))
         elif delta_rank:
             return Direction((delta_rank, 0))
-        elif delta_file:
+        else:
             return Direction((0, delta_file))
 
     def __add__(self, other):
