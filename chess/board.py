@@ -400,9 +400,6 @@ class Board:
         self[to_pos.rank][to_pos.file] = self[from_pos.rank][from_pos.file]
         self[from_pos.rank][from_pos.file] = None
 
-    def shallow_copy(self, board) -> None:
-        self.__dict__.update(board.__dict__)
-
     @contextlib.contextmanager
     def temporarily_remove_position(self, *positions):
         cache = [self[p.rank][p.file] for p in positions]

@@ -19,20 +19,20 @@ promotion_options = [
     ('Bishop', pieces.Bishop),
 ]
 
-class TuiBoard(Board):
+class TuiBoard:
     _Cursor = namedtuple('CursorPosition', 'y x')
 
     #TODO: handle self.promotion_cb properly
     def __init__(self, screen, top_x=0, top_y=0, centered=False, *, fen: str=None):
         if fen is not None:
-            self.shallow_copy(Board.from_fen(fen))
+            self._board = Board.from_fen(fen)
         else:
-            self.shallow_copy(Board.standard_configuration())
+            self._board = Board.standard_configuration()
 
         # ncurses screen object
         self.screen = screen
         self.centered = centered
-        self.promotion_cb = functools.partial(SelectModal(promotion_options), self.screen)
+        self._board.promotion_cb = functools.partial(SelectModal(promotion_options), self.screen)
 
         # frame_x is the begginning of the files header and footer
         self.frame_x, self.frame_y = top_x, top_y
@@ -61,7 +61,7 @@ class TuiBoard(Board):
         assert to_pos in self._selected_legal_moves
 
 
-        self.move(from_pos=from_pos, to_pos=to_pos)
+        self._board.move(from_pos=from_pos, to_pos=to_pos)
 
         self.should_redraw = True
 
@@ -98,7 +98,6 @@ class TuiBoard(Board):
         new_cursor_position = self._position_to_coordinates(cursor_position)
         self.cursor = self._Cursor(*new_cursor_position)
 
-
     @property
     def is_current_select_in_legal_moves(self):
         return self._cursor_to_position(self.cursor) in self._selected_legal_moves
@@ -119,12 +118,12 @@ class TuiBoard(Board):
     def highlight_position(self, position, color_pair=None):
         color_pair = color_pair or curses.color_pair(2)
 
-        if self.is_empty(position):
+        if self._board.is_empty(position):
             return False
 
-        piece = self[position.rank][position.file]
+        piece = self._board[position.rank][position.file]
 
-        if piece.color != self.player:
+        if piece.color != self._board.player:
             return False
 
         y, x = self._position_to_coordinates(position)
@@ -142,7 +141,7 @@ class TuiBoard(Board):
         self._selected_legal_moves.clear()
 
         position = self.selected
-        moves = self[position.rank][position.file].generate_moves(self, position)
+        moves = self._board[position.rank][position.file].generate_moves(self._board, position)
 
         coordinates = list(map(self._position_to_coordinates, moves))
 
@@ -150,7 +149,7 @@ class TuiBoard(Board):
         x_coordinates = map(operator.itemgetter(1), coordinates)
 
         for y, x, pos in zip(y_coordinates, x_coordinates, moves):
-            if self.is_empty(pos):
+            if self._board.is_empty(pos):
                 self.screen.addstr(y, x, 'x', color_pair)
             else:
                 self.screen.chgat(y, x, 1, color_pair)
@@ -165,7 +164,7 @@ class TuiBoard(Board):
         x_coordinates = map(operator.itemgetter(1), coordinates)
 
         for y, x, pos in zip(y_coordinates, x_coordinates, positions):
-            square = self[pos.rank][pos.file]
+            square = self._board[pos.rank][pos.file]
             self.screen.addstr(y, x, square_to_str(square), curses.color_pair(0))
 
         self._selected = None
@@ -202,7 +201,7 @@ class TuiBoard(Board):
         self.screen.addstr(self.frame_y + 9, self.frame_x + 2, files)
 
     def _draw_board(self):
-        for i, row in enumerate(self.projection):
+        for i, row in enumerate(self._board.projection):
             for j, elem in enumerate(row):
                 self.screen.addstr(self.top_y + i, self.top_x + j * 2, square_to_str(elem))
 
@@ -221,3 +220,6 @@ class TuiBoard(Board):
         y, x = position.coordinates
 
         return y * self.step_y + self.top_y, x * self.step_x + self.top_x
+    
+    def next_turn(self):
+        self._board.next_turn()
