@@ -323,10 +323,10 @@ class Board:
         if direction in [Direction.UP, Direction.DOWN]:
             delta_rank, delta_file = direction, 0
 
-        elif direction in [Direction.RIGHT, Direction.LEFT]:
+        if direction in [Direction.RIGHT, Direction.LEFT]:
             delta_rank, delta_file = 0, direction
 
-        elif isinstance(direction, Diagonal):
+        if isinstance(direction, Diagonal):
             delta_rank, delta_file = direction.composites()
 
         curr_pos = Position(rank + delta_rank, file + delta_file)
