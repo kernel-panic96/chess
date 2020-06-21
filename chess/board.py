@@ -94,7 +94,7 @@ def _promote_if_necessary(board_move_func):
             if to_pos.rank == last_rank:
                 piece_cls = board.promotion_cb()
 
-                board[to_pos.rank][to_pos.file] = piece_cls(square.color) 
+                board[to_pos.rank][to_pos.file] = piece_cls(square.color)
 
     return conditional_promote_wrapper
 
@@ -137,7 +137,7 @@ class Board:
 
         return board
 
-    def empty(self) -> List[Union[None, 'ChessPiece']]:
+    def empty(self) -> List[Union[None, 'ChessPiece']]:  # noqa: F821
         side_padding = [OutOfBounds, OutOfBounds]
 
         top_padding = [OutOfBounds] * 12
@@ -367,7 +367,7 @@ class Board:
                         if position in pawn_positions:
                             yield position
 
-                elif not self.is_empty(position) and direction != 'Knight': 
+                elif not self.is_empty(position) and direction != 'Knight':
                     # every other piece is blockable so we can stop going further
                     break
 
