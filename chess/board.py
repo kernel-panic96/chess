@@ -339,27 +339,30 @@ class Board:
 
         positions_by_dir = self.get_positions_in_direction(start_pos, *all_directions)
         positions_by_dir['Knight'] = filter(self.is_in_bounds, Knight.possible_positions(start_pos))
+        diagonals = [d.name for d in Diagonal]  # TODO(yavor): cleanup from bug fix
+        directions = [d.name for d in Direction]
 
         for direction, positions in positions_by_dir.items():
+            direction = getattr(direction, 'name', direction)  # TODO(yavor): cleanup bug fix
             for position in positions:
                 if not self.is_empty(position) and self.are_enemies(color, position):
-                    piece = self[position.rank][position.file]
-                    piece_type = piece.figure_type
+                    enemy = self[position.rank][position.file]
+                    enemy_type = enemy.figure_type
 
-                    if direction in Diagonal and piece_type in [Type.BISHOP, Type.QUEEN]:
+                    if direction == 'Knight' and enemy_type is Type.KNIGHT:
                         yield position
 
-                    elif direction in Direction and piece_type in [Type.ROOK, Type.QUEEN]:
+                    if direction in diagonals and enemy_type in [Type.BISHOP, Type.QUEEN]:
                         yield position
 
-                    elif direction == 'Knight' and piece_type is Type.KNIGHT:
+                    elif direction in directions and enemy_type in [Type.ROOK, Type.QUEEN]:
                         yield position
 
-                    elif piece_type is Type.KING and start_pos.dist(position) == 1:
+                    elif enemy_type is Type.KING and start_pos.dist(position) == 1:
                         yield position
 
-                    elif piece_type is Type.PAWN:
-                        direction = Direction.DOWN if piece.color == Color.WHITE else Direction.UP
+                    elif enemy_type is Type.PAWN:
+                        direction = Direction.DOWN if enemy.color == Color.WHITE else Direction.UP
                         pawn_positions = {
                             Position(rank=start_pos.rank + direction, file=start_pos.file + Direction.RIGHT),
                             Position(rank=start_pos.rank + direction, file=start_pos.file + Direction.LEFT)
